@@ -69,7 +69,7 @@ workflow_status:
         command: "/bmad:bmm:workflows:create-architecture"
         output: "System architecture document"
       create_epics_and_stories:
-        status: "required"
+        status: "docs/epics.md"
         agent: "pm"
         command: "/bmad:bmm:workflows:create-epics-and-stories"
       test_design:
