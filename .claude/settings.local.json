@@ -16,7 +16,8 @@
       "Bash(timeout:*)",
       "Bash(test:*)",
       "Bash(npx shadcn@latest:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx tauri:*)"
     ],
     "deny": [],
     "ask": []
