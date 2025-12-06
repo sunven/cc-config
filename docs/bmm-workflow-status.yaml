@@ -45,7 +45,7 @@ workflow_status:
     required: true
     workflows:
       prd:
-        status: "required"
+        status: "docs/prd.md"
         agent: "pm"
         command: "/bmad:bmm:workflows:prd"
         output: "Product Requirements Document with FRs and NFRs"
@@ -64,7 +64,7 @@ workflow_status:
     required: true
     workflows:
       create_architecture:
-        status: "required"
+        status: "docs/architecture.md"
         agent: "architect"
         command: "/bmad:bmm:workflows:create-architecture"
         output: "System architecture document"
