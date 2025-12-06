@@ -1,0 +1,98 @@
+# generated: 2025-12-06
+# project: cc-config
+# project_key: cc-config
+# tracking_system: file-system
+# story_location: docs/sprint-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2025-12-06
+project: cc-config
+project_key: cc-config
+tracking_system: file-system
+story_location: docs/sprint-artifacts
+
+development_status:
+  # Epic 1: Foundation Setup
+  epic-1: backlog
+  1-1-project-initialization: backlog
+  1-2-development-dependencies-installation: backlog
+  1-3-tauri-permissions-configuration: backlog
+  1-4-project-structure-implementation: backlog
+  1-5-basic-application-shell: backlog
+  1-6-zustand-stores-implementation: backlog
+  1-7-file-system-access-module: backlog
+  1-8-file-watching-implementation: backlog
+  1-9-integration-testing: backlog
+  1-10-documentation-and-developer-setup: backlog
+  1-11-foundation-epic-validation: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Configuration Scope Display
+  epic-2: backlog
+  2-1-user-level-scope-tab: backlog
+  2-2-project-level-scope-tab: backlog
+  2-3-current-scope-indicator: backlog
+  2-4-scope-switching-performance: backlog
+  2-5-multi-project-navigation: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Configuration Source Identification
+  epic-3: backlog
+  3-1-color-coded-source-indicators: backlog
+  3-2-inheritance-chain-calculation: backlog
+  3-3-inheritance-path-visualization: backlog
+  3-4-source-trace-functionality: backlog
+  3-5-inheritance-chain-summary: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: MCP & Sub Agents Management
+  epic-4: backlog
+  4-1-mcp-servers-display: backlog
+  4-2-sub-agents-display: backlog
+  4-3-unified-capability-panel: backlog
+  4-4-capability-details-view: backlog
+  4-5-capability-statistics: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Cross-Project Configuration Comparison
+  epic-5: backlog
+  5-1-project-discovery-and-listing: backlog
+  5-2-side-by-side-comparison-view: backlog
+  5-3-difference-highlighting: backlog
+  5-4-project-health-dashboard: backlog
+  5-5-configuration-export: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Error Handling & User Experience
+  epic-6: backlog
+  6-1-comprehensive-error-handling: backlog
+  6-2-loading-states-and-progress-indicators: backlog
+  6-3-first-time-user-experience: backlog
+  6-4-performance-optimization: backlog
+  6-5-accessibility-and-internationalization: backlog
+  6-6-final-polish-and-testing: backlog
+  epic-6-retrospective: optional
