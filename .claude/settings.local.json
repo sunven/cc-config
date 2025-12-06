@@ -1,7 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "SlashCommand(/bmad:bmm:workflows:create-story)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(tree:*)",
+      "Bash(cargo tauri init:*)",
+      "Bash(cargo check:*)",
+      "Bash(rustc:*)",
+      "Bash(rustup:*)",
+      "Bash(cargo update:*)",
+      "Bash(cargo:*)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout:*)",
+      "Bash(test:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
