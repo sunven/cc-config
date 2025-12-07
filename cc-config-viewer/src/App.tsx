@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { ConfigList } from '@/components/ConfigList'
 import { ProjectTab } from '@/components/ProjectTab'
+import { ScopeIndicator } from '@/components/ScopeIndicator'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -54,47 +56,58 @@ function App() {
     [activeProject, isDetecting]
   )
 
+  // Dynamic grid columns based on visible tabs
+  const tabGridCols = showProjectTab ? 'grid-cols-2' : 'grid-cols-1'
+
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-background text-foreground">
-        {/* Header */}
-        <header className="border-b border-border px-6 py-4">
-          <h1 className="text-xl font-semibold">cc-config</h1>
-        </header>
+      <TooltipProvider>
+        <div className="min-h-screen bg-background text-foreground">
+          {/* Header */}
+          <header className="border-b border-border px-6 py-4">
+            <h1 className="text-xl font-semibold">cc-config</h1>
+          </header>
 
-        {/* Main Content with Tab Navigation */}
-        <main className="p-6">
-          <Tabs value={currentScope} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="user">用户级</TabsTrigger>
-              {showProjectTab && (
-                <TabsTrigger value="project">
-                  {activeProject?.name || 'test-project'}
-                </TabsTrigger>
-              )}
-            </TabsList>
-            <TabsContent value="user" className="mt-4">
-              <ConfigList
-                configs={configs}
-                title="User-Level Configuration"
-                isLoading={isLoading}
-                error={error}
-              />
-            </TabsContent>
-            {showProjectTab && (
-              <TabsContent value="project" className="mt-4">
-                <ProjectTab scope="project" project={activeProject} />
+          {/* Main Content with Tab Navigation */}
+          <main className="p-6">
+            <Tabs value={currentScope} onValueChange={handleTabChange} className="w-full">
+              <TabsList className={`grid w-full ${tabGridCols}`}>
+                <TabsTrigger value="user">用户级</TabsTrigger>
+                {showProjectTab && (
+                  <TabsTrigger value="project">
+                    {activeProject?.name || 'test-project'}
+                  </TabsTrigger>
+                )}
+              </TabsList>
+              <TabsContent value="user" className="mt-4">
+                <div className="mb-4">
+                  <ScopeIndicator scope="user" />
+                </div>
                 <ConfigList
                   configs={configs}
-                  title="Project-Level Configuration"
+                  title="User-Level Configuration"
                   isLoading={isLoading}
                   error={error}
                 />
               </TabsContent>
-            )}
-          </Tabs>
-        </main>
-      </div>
+              {showProjectTab && (
+                <TabsContent value="project" className="mt-4">
+                  <div className="mb-4">
+                    <ScopeIndicator scope="project" projectName={activeProject?.name} />
+                  </div>
+                  <ProjectTab scope="project" project={activeProject} />
+                  <ConfigList
+                    configs={configs}
+                    title="Project-Level Configuration"
+                    isLoading={isLoading}
+                    error={error}
+                  />
+                </TabsContent>
+              )}
+            </Tabs>
+          </main>
+        </div>
+      </TooltipProvider>
     </ErrorBoundary>
   )
 }

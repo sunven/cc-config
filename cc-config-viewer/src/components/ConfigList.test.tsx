@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ConfigList } from './ConfigList'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import type { ConfigEntry } from '../types'
+
+// Wrapper for components that use Tooltip
+const renderWithTooltip = (component: React.ReactNode) => {
+  return render(
+    <TooltipProvider>
+      {component}
+    </TooltipProvider>
+  )
+}
 
 describe('ConfigList', () => {
   const mockConfigs: ConfigEntry[] = [
@@ -58,9 +68,9 @@ describe('ConfigList', () => {
       }
     ]
 
-    render(<ConfigList configs={configsWithInherited} />)
+    renderWithTooltip(<ConfigList configs={configsWithInherited} />)
 
-    expect(screen.getByText('Inherited')).toBeInTheDocument()
+    expect(screen.getByText('继承自用户级')).toBeInTheDocument()
   })
 
   it('renders overridden badge when config is overridden', () => {

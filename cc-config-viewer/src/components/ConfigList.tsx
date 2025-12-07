@@ -1,6 +1,7 @@
 import React, { memo } from 'react'
 import type { ConfigEntry } from '../types'
 import { Badge } from './ui/badge'
+import { InheritedIndicator } from './InheritedIndicator'
 
 interface ConfigListProps {
   configs: ConfigEntry[]
@@ -81,9 +82,7 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({ 
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-sm truncate">{config.key}</span>
                   {config.inherited && (
-                    <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800 border-purple-200">
-                      Inherited
-                    </Badge>
+                    <InheritedIndicator source="user" showTooltip={true} />
                   )}
                   {config.overridden && (
                     <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
