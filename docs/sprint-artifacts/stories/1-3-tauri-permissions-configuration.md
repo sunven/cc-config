@@ -12,20 +12,24 @@ So that the application can safely read configuration files across platforms.
 
 **Given** the project is set up (Story 1.1 and 1.2 complete)
 
-**When** I configure `tauri.conf.json` with:
+**When** I configure `capabilities/default.json` with:
 ```json
 {
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
   "permissions": [
-    "filesystem:scope",
-    "shell:default"
+    "core:default",
+    "opener:default"
   ]
 }
 ```
 
 **Then** the application can:
-- Read files from `~/.claude.json`
-- Read files from project directories
-- NOT access arbitrary system paths
+- Invoke backend commands to read files from `~/.claude.json`
+- Invoke backend commands to read files from project directories
+- NOT access arbitrary system paths from frontend (backend has controlled access)
 - Show clear permission errors if access denied
 
 **And** the app compiles successfully:
