@@ -10,6 +10,7 @@ interface ConfigStore {
   error: string | null
   updateConfigs: () => Promise<void>
   updateConfig: (key: string, value: any, sourceType: 'user' | 'project' | 'local') => void
+  removeConfig: (path: string) => void
   clearConfigs: () => void
 }
 
@@ -74,5 +75,9 @@ export const useConfigStore = create<ConfigStore>((set) => ({
       }
       return { configs: newConfigs }
     }),
+  removeConfig: (path: string) =>
+    set((state) => ({
+      configs: state.configs.filter((c) => c.source.path !== path),
+    })),
   clearConfigs: () => set({ configs: [], inheritanceChain: { entries: [], resolved: {} }, error: null }),
 }))

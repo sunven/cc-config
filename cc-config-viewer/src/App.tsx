@@ -6,6 +6,7 @@ import { ProjectTab } from '@/components/ProjectTab'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
+import { useFileWatcher } from '@/hooks/useFileWatcher'
 import { detectCurrentProject } from '@/lib/projectDetection'
 
 function App() {
@@ -13,6 +14,9 @@ function App() {
   const { configs, isLoading, error, updateConfigs } = useConfigStore()
   const { activeProject, setActiveProject } = useProjectsStore()
   const [isDetecting, setIsDetecting] = useState(true)
+
+  // Initialize file watcher for automatic config updates
+  useFileWatcher()
 
   // Detect project on mount
   useEffect(() => {

@@ -45,7 +45,7 @@ development_status:
   1-5-basic-application-shell: done
   1-6-zustand-stores-implementation: done
   1-7-file-system-access-module: done
-  1-8-file-watching-implementation: backlog
+  1-8-file-watching-implementation: done
   1-9-integration-testing: backlog
   1-10-documentation-and-developer-setup: backlog
   1-11-foundation-epic-validation: backlog
