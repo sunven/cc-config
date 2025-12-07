@@ -1,41 +1,45 @@
-import { useState } from 'react'
-import { invoke } from '@tauri-apps/api/core'
-import './App.css'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState('')
-  const [name, setName] = useState('')
-
-  async function greet() {
-    setGreetMsg(await invoke('greet', { name }))
-  }
-
   return (
-    <div className="container">
-      <h1>Welcome to cc-config</h1>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Header */}
+        <header className="border-b border-border px-6 py-4">
+          <h1 className="text-xl font-semibold">cc-config</h1>
+        </header>
 
-      <div className="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src="/assets/javascript.svg" className="logo react" alt="React logo" />
-        </a>
+        {/* Main Content with Tab Navigation */}
+        <main className="p-6">
+          <Tabs defaultValue="user" className="w-full">
+            <TabsList>
+              <TabsTrigger value="user">User Level</TabsTrigger>
+              <TabsTrigger value="project" disabled>
+                Project (Coming Soon)
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="user" className="mt-4">
+              <div className="text-center py-12">
+                <h2 className="text-2xl font-medium text-muted-foreground">
+                  Welcome to cc-config
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  Your Claude Code configuration viewer
+                </p>
+              </div>
+            </TabsContent>
+            <TabsContent value="project" className="mt-4">
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  Project configuration will be available soon
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </main>
       </div>
-
-      <p>Click on the Tauri and React logos to learn more</p>
-
-      <div className="row">
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="button" onClick={greet}>Greet</button>
-      </div>
-
-      <p>{greetMsg}</p>
-    </div>
+    </ErrorBoundary>
   )
 }
 
