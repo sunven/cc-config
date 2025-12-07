@@ -9,7 +9,7 @@ interface ConfigListProps {
   error?: string | null
 }
 
-export const ConfigList: React.FC<ConfigListProps> = memo(({ configs, title = 'Configuration', isLoading, error }) => {
+export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({ configs, title = 'Configuration', isLoading, error }) {
   const getSourceBadgeVariant = (sourceType: 'user' | 'project' | 'local') => {
     switch (sourceType) {
       case 'user':

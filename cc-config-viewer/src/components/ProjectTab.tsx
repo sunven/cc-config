@@ -9,7 +9,7 @@ interface ProjectTabProps {
   project?: Project | null
 }
 
-export const ProjectTab: React.FC<ProjectTabProps> = memo(({ scope, project }) => {
+export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ scope, project }) {
   const { currentScope, setCurrentScope } = useUiStore()
   const { updateConfigs } = useConfigStore()
 

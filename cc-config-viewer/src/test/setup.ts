@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import { act } from '@testing-library/react'
 
 // Mock Tauri APIs globally for all tests
 // This prevents errors when components use Tauri functions in tests
@@ -11,6 +12,8 @@ vi.mock('@tauri-apps/api/core', () => ({
     switch (cmd) {
       case 'read_config':
         return Promise.resolve('{}')
+      case 'parse_config':
+        return Promise.resolve({})
       case 'get_project_root':
         return Promise.resolve('/mock/project/root')
       default:
@@ -51,12 +54,14 @@ vi.mock('@tauri-apps/api/event', () => ({
   }),
 }))
 
-// Export helper for triggering mock events in tests
+// Export helper for triggering mock events in tests (wrapped in act)
 export const mockEmitEvent = (event: string, payload: unknown) => {
-  const callbacks = mockListeners.get(event)
-  if (callbacks) {
-    callbacks.forEach(cb => cb({ payload }))
-  }
+  act(() => {
+    const callbacks = mockListeners.get(event)
+    if (callbacks) {
+      callbacks.forEach(cb => cb({ payload }))
+    }
+  })
 }
 
 // Clear mock listeners between tests

@@ -32,24 +32,32 @@ export function useFileWatcher() {
       unlisten = await listen<ConfigChangedEvent>('config-changed', async (event) => {
         const { path, changeType } = event.payload
 
-        console.log(`[useFileWatcher] Config change detected: ${changeType} - ${path}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[useFileWatcher] Config change detected: ${changeType} - ${path}`)
+        }
 
         try {
           if (changeType === 'delete') {
             // Remove deleted config from store
             removeConfig(path)
-            console.log(`[useFileWatcher] Removed config: ${path}`)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[useFileWatcher] Removed config: ${path}`)
+            }
           } else {
             // For create/modify events, reload all configs
             await updateConfigs()
-            console.log(`[useFileWatcher] Reloaded configs after ${changeType}`)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[useFileWatcher] Reloaded configs after ${changeType}`)
+            }
           }
         } catch (error) {
           console.error(`[useFileWatcher] Error handling config change:`, error)
         }
       })
 
-      console.log('[useFileWatcher] File watcher listener initialized')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useFileWatcher] File watcher listener initialized')
+      }
     }
 
     setupListener()
@@ -58,7 +66,9 @@ export function useFileWatcher() {
     return () => {
       if (unlisten) {
         unlisten()
-        console.log('[useFileWatcher] File watcher listener cleaned up')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useFileWatcher] File watcher listener cleaned up')
+        }
       }
     }
   }, [updateConfigs, removeConfig])

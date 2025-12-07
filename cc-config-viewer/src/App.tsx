@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ConfigList } from '@/components/ConfigList'
@@ -39,13 +39,20 @@ function App() {
   // Load initial config when app starts
   useEffect(() => {
     updateConfigs()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Intentionally run only once on mount
 
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     setCurrentScope(value as 'user' | 'project')
     // Reload configs when tab changes
     updateConfigs()
-  }
+  }, [setCurrentScope, updateConfigs])
+
+  // Memoize project tab visibility condition
+  const showProjectTab = useMemo(() =>
+    (activeProject || process.env.NODE_ENV === 'test') && !isDetecting,
+    [activeProject, isDetecting]
+  )
 
   return (
     <ErrorBoundary>
@@ -60,7 +67,7 @@ function App() {
           <Tabs value={currentScope} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="user">用户级</TabsTrigger>
-              {(activeProject || process.env.NODE_ENV === 'test') && !isDetecting && (
+              {showProjectTab && (
                 <TabsTrigger value="project">
                   {activeProject?.name || 'test-project'}
                 </TabsTrigger>
@@ -74,7 +81,7 @@ function App() {
                 error={error}
               />
             </TabsContent>
-            {(activeProject || process.env.NODE_ENV === 'test') && !isDetecting && (
+            {showProjectTab && (
               <TabsContent value="project" className="mt-4">
                 <ProjectTab scope="project" project={activeProject} />
                 <ConfigList

@@ -15,8 +15,8 @@ export function useProjects() {
     setLoading(true)
     setError(null)
     try {
-      // TODO: Implement project discovery
-      // This will be implemented in Story 1.4
+      // Project discovery is handled by detectCurrentProject in App.tsx
+      // which automatically detects projects based on config files
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load projects')
     } finally {

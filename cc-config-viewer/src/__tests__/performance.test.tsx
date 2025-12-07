@@ -8,7 +8,7 @@
  * - Initial render: <50ms
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import App from '../App'
 import { useConfigStore } from '../stores/configStore'
 import { useUiStore } from '../stores/uiStore'
@@ -333,7 +333,9 @@ describe('Performance Summary Report', () => {
       expect(screen.getByRole('tab', { name: /project/i })).toBeInTheDocument()
     })
     const switchStart = performance.now()
-    fireEvent.click(screen.getByRole('tab', { name: /project/i }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /project/i }))
+    })
     metrics.tabSwitch = performance.now() - switchStart
 
     // Measure file change
@@ -342,7 +344,9 @@ describe('Performance Summary Report', () => {
     await waitFor(() => expect(useConfigStore.getState()).toBeDefined())
     metrics.fileChange = performance.now() - changeStart
 
-    unmount()
+    await act(async () => {
+      unmount()
+    })
 
     // Log summary
     console.log('\n=== Performance Summary ===')

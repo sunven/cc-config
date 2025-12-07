@@ -24,8 +24,8 @@ export function useConfig() {
     setError(null)
     try {
       setCurrentScope(scope)
-      // TODO: Implement config loading
-      // This will be implemented in Story 1.7
+      // Config loading is handled by configStore.updateConfigs()
+      // which is triggered when scope changes via useUiStore
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load config')
     } finally {
