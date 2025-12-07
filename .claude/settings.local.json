@@ -18,7 +18,10 @@
       "Bash(npx shadcn@latest:*)",
       "Bash(cat:*)",
       "Bash(npx tauri:*)",
-      "SlashCommand(/bmad:bmm:workflows:code-review)"
+      "SlashCommand(/bmad:bmm:workflows:code-review)",
+      "Skill(/bmad:bmm:workflows:create-story)",
+      "Skill(/bmad:bmm:workflows:dev-story)",
+      "SlashCommand(/bmad:bmm:workflows:dev-story)"
     ],
     "deny": [],
     "ask": []

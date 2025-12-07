@@ -1,51 +1,246 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ProjectTab } from './ProjectTab'
+import { useUiStore } from '../stores/uiStore'
+import { useConfigStore } from '../stores/configStore'
+import type { Project } from '../types/project'
+
+// Create a mock project for testing
+const mockProject: Project = {
+  id: 'test-123',
+  name: 'test-project',
+  path: '/test/project',
+  configPath: '/test/project/.mcp.json',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+}
+
+// Mock the stores
+vi.mock('../stores/uiStore', () => ({
+  useUiStore: vi.fn(),
+}))
+
+vi.mock('../stores/configStore', () => ({
+  useConfigStore: vi.fn(),
+}))
 
 describe('ProjectTab', () => {
-  it('renders with label', () => {
-    const mockClick = vi.fn()
-    render(<ProjectTab label="User Level" isActive={false} onClick={mockClick} />)
-
-    expect(screen.getByRole('button', { name: 'User Level' })).toBeInTheDocument()
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('applies active styling when isActive is true', () => {
-    const mockClick = vi.fn()
-    render(<ProjectTab label="Project Level" isActive={true} onClick={mockClick} />)
+  it('renders with user scope and correct label', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
 
-    const button = screen.getByRole('button', { name: 'Project Level' })
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'project',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
+
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="user" />)
+
+    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(screen.getByText('用户级')).toBeInTheDocument()
+    expect(screen.getByText('User')).toBeInTheDocument()
+  })
+
+  it('renders with project scope and project name', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
+
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'user',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
+
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="project" project={mockProject} />)
+
+    expect(screen.getByRole('button')).toBeInTheDocument()
+    expect(screen.getByText('test-project')).toBeInTheDocument()
+    expect(screen.getByText('Project')).toBeInTheDocument()
+  })
+
+  it('applies active styling when current scope matches', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
+
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'user',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
+
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="user" />)
+
+    const button = screen.getByRole('button')
     expect(button).toHaveClass('bg-blue-600', 'text-white')
   })
 
-  it('applies inactive styling when isActive is false', () => {
-    const mockClick = vi.fn()
-    render(<ProjectTab label="Local Level" isActive={false} onClick={mockClick} />)
+  it('applies inactive styling when current scope does not match', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
 
-    const button = screen.getByRole('button', { name: 'Local Level' })
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'project',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
+
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="user" />)
+
+    const button = screen.getByRole('button')
     expect(button).toHaveClass('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300')
   })
 
-  it('calls onClick when clicked', () => {
-    const mockClick = vi.fn()
-    render(<ProjectTab label="Test Tab" isActive={false} onClick={mockClick} />)
+  it('calls setCurrentScope and updateConfigs when clicked', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
 
-    const button = screen.getByRole('button', { name: 'Test Tab' })
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'project',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
+
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="user" />)
+
+    const button = screen.getByRole('button')
     fireEvent.click(button)
 
-    expect(mockClick).toHaveBeenCalledTimes(1)
+    expect(mockSetCurrentScope).toHaveBeenCalledWith('user')
+    expect(mockUpdateConfigs).toHaveBeenCalledTimes(1)
   })
 
-  it('renders with different labels', () => {
-    const mockClick = vi.fn()
+  it('displays blue badge for user scope', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
 
-    const { rerender } = render(
-      <ProjectTab label="Tab 1" isActive={false} onClick={mockClick} />
-    )
-    expect(screen.getByRole('button', { name: 'Tab 1' })).toBeInTheDocument()
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'user',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
 
-    rerender(<ProjectTab label="Tab 2" isActive={false} onClick={mockClick} />)
-    expect(screen.getByRole('button', { name: 'Tab 2' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tab 1' })).not.toBeInTheDocument()
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="user" />)
+
+    const badge = screen.getByText('User')
+    expect(badge).toHaveClass('bg-blue-100', 'text-blue-800')
+  })
+
+  it('displays green badge for project scope', () => {
+    const mockSetCurrentScope = vi.fn()
+    const mockUpdateConfigs = vi.fn()
+
+    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+      currentScope: 'project',
+      setCurrentScope: mockSetCurrentScope,
+      isLoading: false,
+      sidebarOpen: true,
+      theme: 'light',
+      setLoading: vi.fn(),
+      setSidebarOpen: vi.fn(),
+      setTheme: vi.fn(),
+      toggleTheme: vi.fn(),
+    })
+
+    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      updateConfigs: mockUpdateConfigs,
+      updateConfig: vi.fn(),
+      clearConfigs: vi.fn(),
+    })
+
+    render(<ProjectTab scope="project" project={mockProject} />)
+
+    const badge = screen.getByText('Project')
+    expect(badge).toHaveClass('bg-green-100', 'text-green-800')
   })
 })

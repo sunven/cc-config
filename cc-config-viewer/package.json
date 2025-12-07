@@ -15,6 +15,7 @@
     "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.15",
     "jsdom": "^27.2.0",
     "vitest": "^4.0.15"

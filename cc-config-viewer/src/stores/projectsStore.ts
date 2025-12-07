@@ -1,11 +1,5 @@
 import { create } from 'zustand'
-
-export interface Project {
-  id: string
-  name: string
-  path: string
-  configPath: string
-}
+import type { Project } from '../types/project'
 
 interface ProjectsStore {
   projects: Project[]

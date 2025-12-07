@@ -1,21 +1,25 @@
 import { create } from 'zustand'
 
-interface UIStore {
+interface UiStore {
+  currentScope: 'user' | 'project'
+  isLoading: boolean
   sidebarOpen: boolean
-  activeTab: string
   theme: 'light' | 'dark'
+  setCurrentScope: (scope: 'user' | 'project') => void
+  setLoading: (loading: boolean) => void
   setSidebarOpen: (open: boolean) => void
-  setActiveTab: (tab: string) => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
 }
 
-export const useUIStore = create<UIStore>((set) => ({
+export const useUiStore = create<UiStore>((set) => ({
+  currentScope: 'user',
+  isLoading: false,
   sidebarOpen: true,
-  activeTab: 'user',
   theme: 'light',
+  setCurrentScope: (scope) => set({ currentScope: scope }),
+  setLoading: (loading) => set({ isLoading: loading }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  setActiveTab: (tab) => set({ activeTab: tab }),
   setTheme: (theme) => set({ theme }),
   toggleTheme: () =>
     set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),

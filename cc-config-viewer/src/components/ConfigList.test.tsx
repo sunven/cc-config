@@ -48,7 +48,7 @@ describe('ConfigList', () => {
     expect(sourceElements).toHaveLength(2)
   })
 
-  it('renders inherited flag when config is inherited', () => {
+  it('renders inherited badge when config is inherited', () => {
     const configsWithInherited: ConfigEntry[] = [
       {
         key: 'timeout',
@@ -60,10 +60,10 @@ describe('ConfigList', () => {
 
     render(<ConfigList configs={configsWithInherited} />)
 
-    expect(screen.getByText('(inherited)')).toBeInTheDocument()
+    expect(screen.getByText('Inherited')).toBeInTheDocument()
   })
 
-  it('renders overridden flag when config is overridden', () => {
+  it('renders overridden badge when config is overridden', () => {
     const configsWithOverridden: ConfigEntry[] = [
       {
         key: 'retries',
@@ -75,7 +75,7 @@ describe('ConfigList', () => {
 
     render(<ConfigList configs={configsWithOverridden} />)
 
-    expect(screen.getByText('(overridden)')).toBeInTheDocument()
+    expect(screen.getByText('Overridden')).toBeInTheDocument()
   })
 
   it('displays object values as JSON string', () => {
