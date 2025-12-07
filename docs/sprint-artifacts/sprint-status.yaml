@@ -44,7 +44,7 @@ development_status:
   1-4-project-structure-implementation: done
   1-5-basic-application-shell: done
   1-6-zustand-stores-implementation: done
-  1-7-file-system-access-module: ready-for-dev
+  1-7-file-system-access-module: done
   1-8-file-watching-implementation: backlog
   1-9-integration-testing: backlog
   1-10-documentation-and-developer-setup: backlog

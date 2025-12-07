@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Application error types for consistent error handling
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Serialize, thiserror::Error)]
 #[allow(dead_code)]
 pub enum AppError {
     #[error("Filesystem error: {0}")]
@@ -20,6 +20,23 @@ pub enum AppError {
 
     #[error("Network error: {0}")]
     Network(String),
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(err: std::io::Error) -> Self {
+        match err.kind() {
+            std::io::ErrorKind::PermissionDenied => {
+                AppError::Permission(err.to_string())
+            }
+            _ => AppError::Filesystem(err.to_string()),
+        }
+    }
+}
+
+impl From<serde_json::Error> for AppError {
+    fn from(err: serde_json::Error) -> Self {
+        AppError::Parse(err.to_string())
+    }
 }
 
 /// Represents a project in the configuration viewer

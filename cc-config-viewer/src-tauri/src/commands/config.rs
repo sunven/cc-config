@@ -1,19 +1,20 @@
+use crate::config::reader;
+use crate::types::app::AppError;
 use std::collections::HashMap;
-use std::fs;
 
 #[tauri::command]
-pub fn read_config(path: String) -> Result<String, String> {
-    match fs::read_to_string(path) {
-        Ok(content) => Ok(content),
-        Err(e) => Err(e.to_string()),
-    }
+pub async fn read_config(path: String) -> Result<String, AppError> {
+    tokio::task::spawn_blocking(move || reader::read_file(path))
+        .await
+        .map_err(|e| AppError::Filesystem(format!("Task error: {}", e)))?
 }
 
 #[tauri::command]
-pub fn parse_config(content: String) -> Result<HashMap<String, serde_json::Value>, String> {
-    match serde_json::from_str::<HashMap<String, serde_json::Value>>(&content) {
-        Ok(config) => Ok(config),
-        Err(e) => Err(e.to_string()),
+pub async fn parse_config(content: String) -> Result<HashMap<String, serde_json::Value>, AppError> {
+    let value = reader::parse_json(content)?;
+    match value.as_object() {
+        Some(obj) => Ok(obj.clone().into_iter().collect()),
+        None => Err(AppError::Parse("Expected JSON object".to_string())),
     }
 }
 

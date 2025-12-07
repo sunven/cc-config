@@ -21,7 +21,8 @@
       "SlashCommand(/bmad:bmm:workflows:code-review)",
       "Skill(/bmad:bmm:workflows:create-story)",
       "Skill(/bmad:bmm:workflows:dev-story)",
-      "SlashCommand(/bmad:bmm:workflows:dev-story)"
+      "SlashCommand(/bmad:bmm:workflows:dev-story)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
