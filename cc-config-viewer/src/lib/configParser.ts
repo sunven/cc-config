@@ -52,7 +52,8 @@ export function extractAllEntries(config: Record<string, any>, source: 'user' | 
   const entries: ConfigEntry[] = []
 
   // Create a copy of config without mcpServers and subAgents to avoid double extraction
-  const { mcpServers, mcp_servers, subAgents, sub_agents, agents, ...restConfig } = config
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { mcpServers: _mcpServers, mcp_servers: _mcp_servers, subAgents: _subAgents, sub_agents: _sub_agents, agents: _agents, ...restConfig } = config
 
   // Add direct config entries (excluding nested objects that will be processed separately)
   entries.push(...extractConfigEntries(restConfig, source))

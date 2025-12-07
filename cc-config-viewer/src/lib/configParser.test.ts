@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import {
   parseConfigFile,
   stringifyConfig,
@@ -250,8 +250,8 @@ describe('configParser', () => {
       const mockContent = '{"key": "value", "number": 42}'
       const mockParsed = { key: 'value', number: 42 }
 
-      ;(readConfig as vi.MockedFunction<typeof readConfig>).mockResolvedValue(mockContent)
-      ;(parseConfig as vi.MockedFunction<typeof parseConfig>).mockResolvedValue(mockParsed)
+      ;(readConfig as MockedFunction<typeof readConfig>).mockResolvedValue(mockContent)
+      ;(parseConfig as MockedFunction<typeof parseConfig>).mockResolvedValue(mockParsed)
 
       const result = await readAndParseConfig('~/.claude.json')
 
@@ -261,15 +261,15 @@ describe('configParser', () => {
     })
 
     it('throws error when readConfig fails', async () => {
-      ;(readConfig as vi.MockedFunction<typeof readConfig>).mockRejectedValue(new Error('File not found'))
+      ;(readConfig as MockedFunction<typeof readConfig>).mockRejectedValue(new Error('File not found'))
 
       await expect(readAndParseConfig('~/.claude.json')).rejects.toThrow('File not found')
     })
 
     it('throws error when parseConfig fails', async () => {
       const mockContent = 'invalid json'
-      ;(readConfig as vi.MockedFunction<typeof readConfig>).mockResolvedValue(mockContent)
-      ;(parseConfig as vi.MockedFunction<typeof parseConfig>).mockRejectedValue(new Error('Parse error'))
+      ;(readConfig as MockedFunction<typeof readConfig>).mockResolvedValue(mockContent)
+      ;(parseConfig as MockedFunction<typeof parseConfig>).mockRejectedValue(new Error('Parse error'))
 
       await expect(readAndParseConfig('~/.claude.json')).rejects.toThrow('Parse error')
     })

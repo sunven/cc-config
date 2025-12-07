@@ -24,7 +24,7 @@ export async function detectCurrentProject(): Promise<Project | null> {
         createdAt: new Date(),
         updatedAt: new Date()
       }
-    } catch (mcpError) {
+    } catch {
       // .mcp.json doesn't exist, try .claude/agents/
       const agentsPath = './.claude/agents'
       try {
@@ -40,7 +40,7 @@ export async function detectCurrentProject(): Promise<Project | null> {
           createdAt: new Date(),
           updatedAt: new Date()
         }
-      } catch (agentsError) {
+      } catch {
         // No project configuration found
         return null
       }

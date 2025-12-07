@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useConfigStore } from './configStore'
 import { useUiStore } from './uiStore'
@@ -67,10 +67,10 @@ describe('ConfigStore - Project Configuration', () => {
     ]
 
     // Mock readAndParseConfig to return different configs based on path
-    ;(configParser.readAndParseConfig as vi.MockedFunction<typeof configParser.readAndParseConfig>)
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>)
       .mockResolvedValueOnce(mockUserConfig) // First call for user config
       .mockResolvedValueOnce(mockProjectConfig) // Second call for project config
-    ;(configParser.mergeConfigs as vi.MockedFunction<typeof configParser.mergeConfigs>).mockReturnValue(mockMergedEntries)
+    ;(configParser.mergeConfigs as MockedFunction<typeof configParser.mergeConfigs>).mockReturnValue(mockMergedEntries as any)
 
     // Set scope to project
     act(() => {
@@ -93,7 +93,7 @@ describe('ConfigStore - Project Configuration', () => {
   })
 
   it('handles missing .mcp.json gracefully', async () => {
-    ;(configParser.readAndParseConfig as vi.MockedFunction<typeof configParser.readAndParseConfig>).mockRejectedValue(
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>).mockRejectedValue(
       new Error('File not found')
     )
 
@@ -126,8 +126,8 @@ describe('ConfigStore - Project Configuration', () => {
       },
     ]
 
-    ;(configParser.readAndParseConfig as vi.MockedFunction<typeof configParser.readAndParseConfig>).mockResolvedValue(mockUserConfig)
-    ;(configParser.extractAllEntries as vi.MockedFunction<typeof configParser.extractAllEntries>).mockReturnValue(mockEntries)
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>).mockResolvedValue(mockUserConfig)
+    ;(configParser.extractAllEntries as MockedFunction<typeof configParser.extractAllEntries>).mockReturnValue(mockEntries as any)
 
     // Set scope to user
     act(() => {
@@ -153,8 +153,8 @@ describe('ConfigStore - Project Configuration', () => {
       resolvePromise = resolve
     })
 
-    ;(configParser.readAndParseConfig as vi.MockedFunction<typeof configParser.readAndParseConfig>).mockReturnValue(promise as any)
-    ;(configParser.extractAllEntries as vi.MockedFunction<typeof configParser.extractAllEntries>).mockReturnValue([])
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>).mockReturnValue(promise as any)
+    ;(configParser.extractAllEntries as MockedFunction<typeof configParser.extractAllEntries>).mockReturnValue([])
 
     // Set scope to project
     act(() => {

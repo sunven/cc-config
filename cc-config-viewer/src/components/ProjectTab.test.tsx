@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, type Mock } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ProjectTab } from './ProjectTab'
 import { useUiStore } from '../stores/uiStore'
@@ -24,6 +24,9 @@ vi.mock('../stores/configStore', () => ({
   useConfigStore: vi.fn(),
 }))
 
+const mockUseUiStore = useUiStore as unknown as Mock
+const mockUseConfigStore = useConfigStore as unknown as Mock
+
 describe('ProjectTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -33,7 +36,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'project',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -45,7 +48,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,
@@ -64,7 +67,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'user',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -76,7 +79,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,
@@ -95,7 +98,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'user',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -107,7 +110,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,
@@ -125,7 +128,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'project',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -137,7 +140,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,
@@ -155,7 +158,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'project',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -167,7 +170,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,
@@ -188,7 +191,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'user',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -200,7 +203,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,
@@ -218,7 +221,7 @@ describe('ProjectTab', () => {
     const mockSetCurrentScope = vi.fn()
     const mockUpdateConfigs = vi.fn()
 
-    ;(useUiStore as vi.MockedFunction<typeof useUiStore>).mockReturnValue({
+    mockUseUiStore.mockReturnValue({
       currentScope: 'project',
       setCurrentScope: mockSetCurrentScope,
       isLoading: false,
@@ -230,7 +233,7 @@ describe('ProjectTab', () => {
       toggleTheme: vi.fn(),
     })
 
-    ;(useConfigStore as vi.MockedFunction<typeof useConfigStore>).mockReturnValue({
+    mockUseConfigStore.mockReturnValue({
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       updateConfigs: mockUpdateConfigs,

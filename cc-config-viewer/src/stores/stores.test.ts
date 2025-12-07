@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useConfigStore } from './configStore'
 import { useProjectsStore } from './projectsStore'
@@ -250,8 +250,8 @@ describe('Zustand Stores', () => {
         },
       ]
 
-      ;(readAndParseConfig as vi.MockedFunction<typeof readAndParseConfig>).mockResolvedValue(mockConfig)
-      ;(extractAllEntries as vi.MockedFunction<typeof extractAllEntries>).mockReturnValue(mockEntries)
+      ;(readAndParseConfig as MockedFunction<typeof readAndParseConfig>).mockResolvedValue(mockConfig)
+      ;(extractAllEntries as MockedFunction<typeof extractAllEntries>).mockReturnValue(mockEntries as any)
 
       const { result } = renderHook(() => useConfigStore())
 
@@ -267,7 +267,7 @@ describe('Zustand Stores', () => {
     })
 
     it('handles config loading errors gracefully', async () => {
-      ;(readAndParseConfig as vi.MockedFunction<typeof readAndParseConfig>).mockRejectedValue(
+      ;(readAndParseConfig as MockedFunction<typeof readAndParseConfig>).mockRejectedValue(
         new Error('File not found')
       )
 
@@ -294,8 +294,8 @@ describe('Zustand Stores', () => {
         },
       ]
 
-      ;(readAndParseConfig as vi.MockedFunction<typeof readAndParseConfig>).mockResolvedValue(mockConfig)
-      ;(extractAllEntries as vi.MockedFunction<typeof extractAllEntries>).mockReturnValue(mockEntries)
+      ;(readAndParseConfig as MockedFunction<typeof readAndParseConfig>).mockResolvedValue(mockConfig)
+      ;(extractAllEntries as MockedFunction<typeof extractAllEntries>).mockReturnValue(mockEntries as any)
 
       const { result: uiResult } = renderHook(() => useUiStore())
       const { result: configResult } = renderHook(() => useConfigStore())
@@ -320,8 +320,8 @@ describe('Zustand Stores', () => {
         resolvePromise = resolve
       })
 
-      ;(readAndParseConfig as vi.MockedFunction<typeof readAndParseConfig>).mockReturnValue(promise as any)
-      ;(extractAllEntries as vi.MockedFunction<typeof extractAllEntries>).mockReturnValue([])
+      ;(readAndParseConfig as MockedFunction<typeof readAndParseConfig>).mockReturnValue(promise as any)
+      ;(extractAllEntries as MockedFunction<typeof extractAllEntries>).mockReturnValue([])
 
       const { result } = renderHook(() => useConfigStore())
 

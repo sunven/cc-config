@@ -1,1 +1,65 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
+
+// Mock Tauri APIs globally for all tests
+// This prevents errors when components use Tauri functions in tests
+
+// Mock @tauri-apps/api/core
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn().mockImplementation((cmd: string, _args?: unknown) => {
+    // Default mock implementations for known commands
+    switch (cmd) {
+      case 'read_config':
+        return Promise.resolve('{}')
+      case 'get_project_root':
+        return Promise.resolve('/mock/project/root')
+      default:
+        return Promise.resolve(null)
+    }
+  }),
+}))
+
+// Mock @tauri-apps/api/event
+const mockListeners = new Map<string, Array<(event: unknown) => void>>()
+
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn().mockImplementation((event: string, callback: (event: unknown) => void) => {
+    // Store the callback for potential manual triggering in tests
+    if (!mockListeners.has(event)) {
+      mockListeners.set(event, [])
+    }
+    mockListeners.get(event)!.push(callback)
+
+    // Return an unlisten function
+    const unlisten = () => {
+      const callbacks = mockListeners.get(event)
+      if (callbacks) {
+        const index = callbacks.indexOf(callback)
+        if (index > -1) {
+          callbacks.splice(index, 1)
+        }
+      }
+    }
+    return Promise.resolve(unlisten)
+  }),
+  emit: vi.fn().mockImplementation((event: string, payload?: unknown) => {
+    const callbacks = mockListeners.get(event)
+    if (callbacks) {
+      callbacks.forEach(cb => cb({ payload }))
+    }
+    return Promise.resolve()
+  }),
+}))
+
+// Export helper for triggering mock events in tests
+export const mockEmitEvent = (event: string, payload: unknown) => {
+  const callbacks = mockListeners.get(event)
+  if (callbacks) {
+    callbacks.forEach(cb => cb({ payload }))
+  }
+}
+
+// Clear mock listeners between tests
+beforeEach(() => {
+  mockListeners.clear()
+})
