@@ -1,7 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ErrorBoundary } from './ErrorBoundary'
-import React from 'react'
 
 // Create a component that throws an error for testing
 const BuggyComponent = () => {
@@ -89,7 +88,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('renders children when state is reset', () => {
-    const { rerender } = render(
+    render(
       <ErrorBoundary>
         <BuggyComponent />
       </ErrorBoundary>

@@ -1,13 +1,5 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ConfigEntry {
-    pub key: String,
-    pub value: serde_json::Value,
-    pub source_type: String,
-}
 
 #[tauri::command]
 pub fn read_config(path: String) -> Result<String, String> {

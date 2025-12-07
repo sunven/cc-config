@@ -1,6 +1,6 @@
 # Story 1.4: Project Structure Implementation
 
-Status: Ready for Review
+Status: done
 
 ## Story
 
@@ -42,30 +42,30 @@ src-tauri/src/
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create frontend directory structure
-  - [ ] Subtask 1.1: Create src/components/ directory
-  - [ ] Subtask 1.2: Create src/hooks/ directory
-  - [ ] Subtask 1.3: Create src/stores/ directory
-  - [ ] Subtask 1.4: Create src/lib/ directory
-  - [ ] Subtask 1.5: Create src/types/ directory
-- [ ] Task 2: Create backend directory structure
-  - [ ] Subtask 2.1: Create src-tauri/src/commands/ directory
-  - [ ] Subtask 2.2: Create src-tauri/src/config/ directory
-  - [ ] Subtask 2.3: Create src-tauri/src/types/ directory
-- [ ] Task 3: Create initial TypeScript interfaces
-  - [ ] Subtask 3.1: Define Project interface in src/types/index.ts
-  - [ ] Subtask 3.2: Define McpServer interface
-  - [ ] Subtask 3.3: Define ConfigSource enum
-  - [ ] Subtask 3.4: Define Agent interface
-- [ ] Task 4: Create placeholder component files
-  - [ ] Subtask 4.1: Create ProjectTab.tsx placeholder
-  - [ ] Subtask 4.2: Create ConfigList.tsx placeholder
-  - [ ] Subtask 4.3: Create McpBadge.tsx placeholder
-  - [ ] Subtask 4.4: Create ErrorBoundary.tsx placeholder
-- [ ] Task 5: Verify TypeScript compilation
-  - [ ] Subtask 5.1: Run npm run tauri build
-  - [ ] Subtask 5.2: Verify no TypeScript errors
-  - [ ] Subtask 5.3: Test app launches successfully
+- [x] Task 1: Create frontend directory structure
+  - [x] Subtask 1.1: Create src/components/ directory
+  - [x] Subtask 1.2: Create src/hooks/ directory
+  - [x] Subtask 1.3: Create src/stores/ directory
+  - [x] Subtask 1.4: Create src/lib/ directory
+  - [x] Subtask 1.5: Create src/types/ directory
+- [x] Task 2: Create backend directory structure
+  - [x] Subtask 2.1: Create src-tauri/src/commands/ directory
+  - [x] Subtask 2.2: Create src-tauri/src/config/ directory
+  - [x] Subtask 2.3: Create src-tauri/src/types/ directory
+- [x] Task 3: Create initial TypeScript interfaces
+  - [x] Subtask 3.1: Define Project interface in src/types/index.ts
+  - [x] Subtask 3.2: Define McpServer interface
+  - [x] Subtask 3.3: Define ConfigSource enum
+  - [x] Subtask 3.4: Define Agent interface
+- [x] Task 4: Create placeholder component files
+  - [x] Subtask 4.1: Create ProjectTab.tsx placeholder
+  - [x] Subtask 4.2: Create ConfigList.tsx placeholder
+  - [x] Subtask 4.3: Create McpBadge.tsx placeholder
+  - [x] Subtask 4.4: Create ErrorBoundary.tsx placeholder
+- [x] Task 5: Verify TypeScript compilation
+  - [x] Subtask 5.1: Run npm run tauri build
+  - [x] Subtask 5.2: Verify no TypeScript errors
+  - [x] Subtask 5.3: Test app launches successfully
 
 ### Review Follow-ups (AI)
 
@@ -402,6 +402,17 @@ create-story (Ultimate Context Engine) - v6.0.0-alpha.13
 - 测试报告: npm test 输出 (7 files, 57 tests passed)
 
 ### Change Log
+
+**2025-12-07 - 代码审查第二轮修复:**
+- ✅ 修复 TypeScript 编译错误 (ErrorBoundary.test.tsx)
+  - 添加 `beforeEach`, `afterEach` 到 vitest 导入
+  - 移除未使用的 `React` 导入
+  - 移除未使用的 `rerender` 变量
+- ✅ 更新所有任务状态为已完成 [x]
+- ✅ 更新故事状态为 done
+- ✅ 更新 sprint-status.yaml (1-3 和 1-4 都改为 done)
+- ✅ TypeScript 编译通过 (npx tsc --noEmit)
+- ✅ 所有测试通过 (npm test: 7 files, 57 tests passed)
 
 **2025-12-07 - 添加测试覆盖:**
 - 为ProjectTab组件创建5个单元测试 (渲染、样式、交互)

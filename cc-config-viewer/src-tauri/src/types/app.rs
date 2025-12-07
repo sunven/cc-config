@@ -1,6 +1,13 @@
+//! Application types module
+//!
+//! Core types for the cc-config-viewer application.
+//! These types will be used in Story 1.5+ for the application shell and beyond.
+
 use serde::{Deserialize, Serialize};
 
+/// Application error types for consistent error handling
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub enum AppError {
     #[error("Filesystem error: {0}")]
     Filesystem(String),
@@ -15,7 +22,9 @@ pub enum AppError {
     Network(String),
 }
 
+/// Represents a project in the configuration viewer
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Project {
     pub id: String,
     pub name: String,
@@ -23,14 +32,18 @@ pub struct Project {
     pub config_path: String,
 }
 
+/// Represents the source of a configuration value
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ConfigSource {
     pub type_: String,
     pub path: String,
     pub priority: u32,
 }
 
+/// A configuration entry with its value and source
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ConfigEntry {
     pub key: String,
     pub value: serde_json::Value,
