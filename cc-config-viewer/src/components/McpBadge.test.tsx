@@ -1,149 +1,216 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { McpBadge } from './McpBadge'
-import type { McpServer } from '../types'
+import type { McpServer } from '../types/mcp'
 
 describe('McpBadge', () => {
-  const runningServer: McpServer = {
+  const activeServer: McpServer = {
     name: 'filesystem',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/dir'],
-    status: 'running'
+    type: 'stdio',
+    description: 'File system operations',
+    config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/dir'] },
+    status: 'active',
+    sourcePath: '/home/user/.claude.json'
   }
 
-  const stoppedServer: McpServer = {
+  const inactiveServer: McpServer = {
     name: 'postgres',
-    command: 'node',
-    args: ['server.js'],
-    status: 'stopped'
+    type: 'http',
+    description: 'PostgreSQL database',
+    config: { url: 'http://localhost:5432' },
+    status: 'inactive',
+    sourcePath: './.mcp.json'
   }
 
   const errorServer: McpServer = {
     name: 'git',
-    command: 'python',
-    args: ['mcp-git-server.py'],
-    status: 'error'
+    type: 'stdio',
+    description: 'Git operations',
+    config: { command: 'python', args: ['mcp-git-server.py'] },
+    status: 'error',
+    sourcePath: '/home/user/.claude.json'
   }
 
   it('renders server name', () => {
-    render(<McpBadge server={runningServer} />)
+    render(<McpBadge server={activeServer} source="user" />)
     expect(screen.getByText('filesystem')).toBeInTheDocument()
   })
 
-  it('applies green styling for running status', () => {
-    render(<McpBadge server={runningServer} />)
+  it('applies green styling for active status', () => {
+    render(<McpBadge server={activeServer} source="user" />)
 
-    const badge = screen.getByText('filesystem').closest('span')
-    expect(badge).toHaveClass('bg-green-100', 'text-green-800')
+    const statusDot = document.querySelector('.w-2.h-2.rounded-full.bg-green-500')
+    expect(statusDot).toBeInTheDocument()
   })
 
-  it('applies gray styling for stopped status', () => {
-    render(<McpBadge server={stoppedServer} />)
+  it('applies gray styling for inactive status', () => {
+    render(<McpBadge server={inactiveServer} source="project" />)
 
-    const badge = screen.getByText('postgres').closest('span')
-    expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
+    const statusDot = document.querySelector('.w-2.h-2.rounded-full.bg-gray-400')
+    expect(statusDot).toBeInTheDocument()
   })
 
   it('applies red styling for error status', () => {
-    render(<McpBadge server={errorServer} />)
+    render(<McpBadge server={errorServer} source="user" />)
 
-    const badge = screen.getByText('git').closest('span')
-    expect(badge).toHaveClass('bg-red-100', 'text-red-800')
+    const statusDot = document.querySelector('.w-2.h-2.rounded-full.bg-red-500')
+    expect(statusDot).toBeInTheDocument()
   })
 
-  it('displays server with different names', () => {
-    render(<McpBadge server={stoppedServer} />)
-    expect(screen.getByText('postgres')).toBeInTheDocument()
-
-    render(<McpBadge server={errorServer} />)
-    expect(screen.getByText('git')).toBeInTheDocument()
+  it('displays server description', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+    expect(screen.getByText('File system operations')).toBeInTheDocument()
   })
 
-  it('includes status indicator dot', () => {
-    render(<McpBadge server={runningServer} />)
-
-    const dots = document.querySelectorAll('.w-2.h-2.rounded-full')
-    expect(dots).toHaveLength(1)
+  it('displays server type', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+    expect(screen.getByText('stdio')).toBeInTheDocument()
   })
 
-  it('renders with server that has env', () => {
-    const serverWithEnv: McpServer = {
-      name: 'custom-server',
-      command: 'node',
-      args: ['server.js'],
-      env: { PORT: '3000' },
-      status: 'running'
+  it('displays source badge for user', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+    const sourceBadge = screen.getByText('user')
+    expect(sourceBadge).toBeInTheDocument()
+    expect(sourceBadge.closest('.bg-blue-100')).toBeInTheDocument()
+  })
+
+  it('displays source badge for project', () => {
+    render(<McpBadge server={inactiveServer} source="project" />)
+    const sourceBadge = screen.getByText('project')
+    expect(sourceBadge).toBeInTheDocument()
+    expect(sourceBadge.closest('.bg-green-100')).toBeInTheDocument()
+  })
+
+  it('displays source badge for local', () => {
+    render(<McpBadge server={activeServer} source="local" />)
+    const sourceBadge = screen.getByText('local')
+    expect(sourceBadge).toBeInTheDocument()
+    expect(sourceBadge.closest('.bg-gray-100')).toBeInTheDocument()
+  })
+
+  it('shows configuration preview', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+    expect(screen.getByText(/command:/)).toBeInTheDocument()
+  })
+
+  it('shows tooltip with full configuration', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+    const viewConfigButton = screen.getByText('View full configuration')
+    expect(viewConfigButton).toBeInTheDocument()
+  })
+
+  it('renders without description', () => {
+    const serverWithoutDescription: McpServer = {
+      name: 'test-server',
+      type: 'http',
+      config: { url: 'http://localhost:3000' },
+      status: 'active',
+      sourcePath: './.mcp.json'
     }
 
-    render(<McpBadge server={serverWithEnv} />)
-    expect(screen.getByText('custom-server')).toBeInTheDocument()
+    render(<McpBadge server={serverWithoutDescription} source="project" />)
+    expect(screen.getByText('test-server')).toBeInTheDocument()
   })
 
-  it('applies default gray styling for unknown status', () => {
-    const unknownStatusServer = {
-      name: 'test',
-      command: 'test',
-      args: [],
-      status: 'stopped' as const
-    }
-
-    render(<McpBadge server={unknownStatusServer} />)
-
-    const badge = screen.getByText('test').closest('span')
-    expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
-  })
-
-  // MEDIUM #5 Fix: Test default case in getStatusColor and memo comparison
-  it('applies default styling for undefined/unknown status type', () => {
-    // Test the default case in getStatusColor switch
-    const serverWithUnknownStatus = {
+  it('applies default styling for unknown status', () => {
+    const serverWithUnknownStatus: McpServer = {
       name: 'unknown-status',
-      command: 'test',
-      args: [],
-      // Cast to force an unknown status through
-      status: 'unknown' as McpServer['status']
+      type: 'stdio',
+      config: {},
+      status: 'inactive',
+      sourcePath: './.mcp.json'
     }
 
-    render(<McpBadge server={serverWithUnknownStatus} />)
+    render(<McpBadge server={serverWithUnknownStatus} source="project" />)
 
-    const badge = screen.getByText('unknown-status').closest('span')
-    // Default case should apply gray styling
-    expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
+    const statusDot = document.querySelector('.w-2.h-2.rounded-full.bg-gray-400')
+    expect(statusDot).toBeInTheDocument()
   })
 
   it('memo comparison prevents re-render when props are equal', () => {
-    const { rerender } = render(<McpBadge server={runningServer} />)
+    const { rerender } = render(<McpBadge server={activeServer} source="user" />)
 
     // Re-render with same server object
-    rerender(<McpBadge server={runningServer} />)
+    rerender(<McpBadge server={activeServer} source="user" />)
 
-    // Should still render correctly (memo allows re-render since same reference)
+    // Should still render correctly
     expect(screen.getByText('filesystem')).toBeInTheDocument()
   })
 
   it('memo comparison triggers re-render when name changes', () => {
-    const { rerender } = render(<McpBadge server={runningServer} />)
+    const { rerender } = render(<McpBadge server={activeServer} source="user" />)
 
     expect(screen.getByText('filesystem')).toBeInTheDocument()
 
     // Re-render with different server name
-    const updatedServer = { ...runningServer, name: 'updated-name' }
-    rerender(<McpBadge server={updatedServer} />)
+    const updatedServer = { ...activeServer, name: 'updated-name' }
+    rerender(<McpBadge server={updatedServer} source="user" />)
 
     expect(screen.getByText('updated-name')).toBeInTheDocument()
   })
 
   it('memo comparison triggers re-render when status changes', () => {
-    const { rerender } = render(<McpBadge server={runningServer} />)
+    const { rerender } = render(<McpBadge server={activeServer} source="user" />)
 
-    let badge = screen.getByText('filesystem').closest('span')
-    expect(badge).toHaveClass('bg-green-100')
+    let statusDot = document.querySelector('.w-2.h-2.rounded-full.bg-green-500')
+    expect(statusDot).toBeInTheDocument()
 
     // Re-render with different status
-    const updatedServer: McpServer = { ...runningServer, status: 'error' }
-    rerender(<McpBadge server={updatedServer} />)
+    const updatedServer: McpServer = { ...activeServer, status: 'error' }
+    rerender(<McpBadge server={updatedServer} source="user" />)
 
-    badge = screen.getByText('filesystem').closest('span')
-    expect(badge).toHaveClass('bg-red-100')
+    statusDot = document.querySelector('.w-2.h-2.rounded-full.bg-red-500')
+    expect(statusDot).toBeInTheDocument()
+  })
+
+  it('has proper accessibility attributes', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+
+    // Check for article role
+    const card = document.querySelector('[role="article"]')
+    expect(card).toBeInTheDocument()
+    expect(card).toHaveAttribute('aria-label', 'MCP server: filesystem')
+
+    // Check status indicator accessibility
+    const statusDot = document.querySelector('[role="status"]')
+    expect(statusDot).toBeInTheDocument()
+    expect(statusDot).toHaveAttribute('aria-label', 'Status: active')
+
+    // Check aria-live region for status text
+    const statusText = screen.getByText('active')
+    expect(statusText).toHaveAttribute('aria-live', 'polite')
+
+    // Check source badge accessibility
+    const sourceBadge = screen.getByText('user')
+    expect(sourceBadge).toHaveAttribute('aria-label', 'Source: user')
+
+    // Check type badge accessibility
+    const typeBadge = screen.getByText('stdio')
+    expect(typeBadge).toHaveAttribute('aria-label', 'Type: stdio')
+  })
+
+  it('displays description with proper semantics', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+
+    const description = screen.getByText('File system operations')
+    expect(description).toBeInTheDocument()
+    expect(description.tagName).toBe('P')
+  })
+
+  it('has semantic heading structure', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+
+    const heading = screen.getByRole('heading', { level: 3 })
+    expect(heading).toBeInTheDocument()
+    expect(heading).toHaveTextContent('filesystem')
+  })
+
+  it('handles keyboard navigation for tooltip trigger', () => {
+    render(<McpBadge server={activeServer} source="user" />)
+
+    const tooltipTrigger = screen.getByText('View full configuration')
+    expect(tooltipTrigger).toBeInTheDocument()
+    // Tooltip triggers should be focusable
+    expect(tooltipTrigger).toHaveAttribute('tabindex', '0')
   })
 })

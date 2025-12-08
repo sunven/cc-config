@@ -1,9 +1,10 @@
 export interface McpServer {
   name: string
-  command: string
-  args: string[]
-  env?: Record<string, string>
-  status: 'running' | 'stopped' | 'error'
+  type: 'http' | 'stdio' | 'sse'
+  description?: string
+  config: Record<string, any>
+  status: 'active' | 'inactive' | 'error'
+  sourcePath: string
 }
 
 export interface SubAgent {

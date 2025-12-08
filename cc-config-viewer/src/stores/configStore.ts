@@ -3,7 +3,8 @@ import type { ConfigEntry, InheritanceChain, InheritanceMap, InheritanceResult, 
 import type { SourceLocation } from '../types/trace'
 import type { InheritanceStats } from '../utils/statsCalculator'
 import type { InheritanceStatsState } from '../types/inheritance-summary'
-import { readAndParseConfig, extractAllEntries, mergeConfigs } from '../lib/configParser'
+import type { McpServer } from '../types/mcp'
+import { readAndParseConfig, extractAllEntries, mergeConfigs, parseMcpServers } from '../lib/configParser'
 import { calculateInheritance } from '../lib/inheritanceCalculator'
 import { calculateStats } from '../utils/statsCalculator'
 
@@ -36,6 +37,15 @@ interface ConfigStore {
   // Inheritance statistics for Story 3.5
   inheritanceStats: InheritanceStatsState
 
+  // MCP servers for Story 4.1
+  mcpServers: McpServer[]
+  mcpServersByScope: {
+    user: McpServer[]
+    project: McpServer[]
+    local: McpServer[]
+  }
+  mcpStatusRefreshInterval: number | null
+
   // Loading states - only for initial load, not for cached switches
   isInitialLoading: boolean
   isBackgroundLoading: boolean
@@ -67,6 +77,13 @@ interface ConfigStore {
   calculateStatsFromChain: (chain?: InheritanceChain) => InheritanceStats | null
   selectStats: () => InheritanceStats | null
 
+  // MCP server actions for Story 4.1
+  updateMcpServers: () => Promise<void>
+  filterMcpServers: (filters: { source?: string; type?: string; status?: string; search?: string }) => McpServer[]
+  sortMcpServers: (servers: McpServer[], sort: { field: string; direction: 'asc' | 'desc' }) => McpServer[]
+  startMcpStatusRefresh: () => void
+  stopMcpStatusRefresh: () => void
+
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
   updateConfig: (key: string, value: any, sourceType: 'user' | 'project' | 'local') => void
@@ -94,6 +111,13 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     lastUpdated: null,
     error: null
   },
+  mcpServers: [],
+  mcpServersByScope: {
+    user: [],
+    project: [],
+    local: []
+  },
+  mcpStatusRefreshInterval: null,
   isInitialLoading: true,
   isBackgroundLoading: false,
   isLoading: true, // Legacy alias - same as isInitialLoading
@@ -364,24 +388,37 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
       projectConfigsCache: {}
     })),
 
-  clearConfigs: () => set({
-    configs: [],
-    inheritanceChain: { entries: [], resolved: {} },
-    inheritanceMap: new Map(),
-    classifiedEntries: [],
-    sourceLocations: {},
-    inheritanceStats: {
-      stats: null,
-      isCalculating: false,
-      lastUpdated: null,
-      error: null
-    },
-    error: null,
-    isInitialLoading: false,
-    isLoading: false,
-    userConfigsCache: null,
-    projectConfigsCache: {}
-  }),
+  clearConfigs: () => {
+    const state = get()
+    if (state.mcpStatusRefreshInterval) {
+      clearInterval(state.mcpStatusRefreshInterval)
+    }
+    set({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      inheritanceMap: new Map(),
+      classifiedEntries: [],
+      sourceLocations: {},
+      inheritanceStats: {
+        stats: null,
+        isCalculating: false,
+        lastUpdated: null,
+        error: null
+      },
+      mcpServers: [],
+      mcpServersByScope: {
+        user: [],
+        project: [],
+        local: []
+      },
+      mcpStatusRefreshInterval: null,
+      error: null,
+      isInitialLoading: false,
+      isLoading: false,
+      userConfigsCache: null,
+      projectConfigsCache: {}
+    })
+  },
 
   // New inheritance methods for Story 3.2
   updateInheritanceChain: (userConfig: ConfigEntry[], projectConfig: ConfigEntry[]) => {
@@ -526,5 +563,132 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   selectStats: () => {
     const state = get()
     return state.inheritanceStats.stats
+  },
+
+  // MCP server actions for Story 4.1
+  updateMcpServers: async () => {
+    try {
+      const userConfig = await readAndParseConfig('~/.claude.json')
+      const projectConfig = await readAndParseConfig('./.mcp.json')
+
+      const { userMcpServers, projectMcpServers, inheritedMcpServers } = parseMcpServers(
+        userConfig,
+        projectConfig
+      )
+
+      set({
+        mcpServers: [...userMcpServers, ...projectMcpServers],
+        mcpServersByScope: {
+          user: userMcpServers,
+          project: projectMcpServers,
+          local: inheritedMcpServers
+        }
+      })
+    } catch (error) {
+      console.error('[configStore] Failed to update MCP servers:', error)
+      set({
+        error: `Failed to update MCP servers: ${error instanceof Error ? error.message : 'Unknown error'}`
+      })
+      // Don't throw - MCP servers are optional
+    }
+  },
+
+  startMcpStatusRefresh: () => {
+    const state = get()
+    if (state.mcpStatusRefreshInterval) {
+      clearInterval(state.mcpStatusRefreshInterval)
+    }
+
+    // Refresh every 30 seconds as per architecture requirements
+    const interval = window.setInterval(() => {
+      state.updateMcpServers()
+    }, 30000)
+
+    set({ mcpStatusRefreshInterval: interval })
+  },
+
+  stopMcpStatusRefresh: () => {
+    const state = get()
+    if (state.mcpStatusRefreshInterval) {
+      clearInterval(state.mcpStatusRefreshInterval)
+      set({ mcpStatusRefreshInterval: null })
+    }
+  },
+
+  filterMcpServers: (filters) => {
+    const state = get()
+    let filtered = [...state.mcpServers]
+
+    if (filters.source) {
+      filtered = filtered.filter(server => {
+        // User-level: ~/.claude.json (absolute path, not starting with ./)
+        const isUser = server.sourcePath.includes('.claude.json') && !server.sourcePath.startsWith('./')
+        // Project-level: ./.mcp.json or ./.claude.json (relative path starting with ./)
+        const isProject = server.sourcePath.startsWith('./')
+        // Local/inherited (any other path)
+        const isLocal = !isUser && !isProject
+
+        switch (filters.source) {
+          case 'user':
+            return isUser
+          case 'project':
+            return isProject
+          case 'local':
+            return isLocal
+          default:
+            return true
+        }
+      })
+    }
+
+    if (filters.type) {
+      filtered = filtered.filter(server => server.type === filters.type)
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter(server => server.status === filters.status)
+    }
+
+    if (filters.search) {
+      const query = filters.search.toLowerCase()
+      filtered = filtered.filter(server =>
+        server.name.toLowerCase().includes(query) ||
+        server.description?.toLowerCase().includes(query) ||
+        server.type.toLowerCase().includes(query)
+      )
+    }
+
+    return filtered
+  },
+
+  sortMcpServers: (servers, sort) => {
+    return [...servers].sort((a, b) => {
+      let aValue: string
+      let bValue: string
+
+      switch (sort.field) {
+        case 'name':
+          aValue = a.name
+          bValue = b.name
+          break
+        case 'type':
+          aValue = a.type
+          bValue = b.type
+          break
+        case 'status':
+          aValue = a.status
+          bValue = b.status
+          break
+        case 'source':
+          aValue = a.sourcePath
+          bValue = b.sourcePath
+          break
+        default:
+          return 0
+      }
+
+      const comparison = aValue.localeCompare(bValue)
+      return sort.direction === 'asc' ? comparison : -comparison
+    })
   },
 }))
