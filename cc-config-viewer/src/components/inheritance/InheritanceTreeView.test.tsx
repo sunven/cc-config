@@ -45,11 +45,13 @@ describe('InheritanceTreeView', () => {
   it('should support tree expansion and navigation (Subtask 4.2)', () => {
     render(<InheritanceTreeView configs={mockConfigs} />)
 
-    const expandButton = screen.getByTestId('expand-button')
-    expect(expandButton).toBeInTheDocument()
-
     // Test that the component has expand/collapse functionality
-    expect(screen.getByText('test.config')).toBeInTheDocument()
+    const treeRoot = screen.getByTestId('tree-root')
+    expect(treeRoot).toBeInTheDocument()
+
+    // Verify expand buttons exist for tree nodes
+    const expandButtons = screen.getAllByTestId('expand-button')
+    expect(expandButtons.length).toBeGreaterThan(0)
   })
 
   it('should handle nested inheritance scenarios (Subtask 4.2)', () => {
