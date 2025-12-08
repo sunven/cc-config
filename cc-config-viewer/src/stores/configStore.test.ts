@@ -9,6 +9,7 @@ vi.mock('../lib/configParser', () => ({
   readAndParseConfig: vi.fn(),
   extractAllEntries: vi.fn(),
   mergeConfigs: vi.fn(),
+  parseMcpServers: vi.fn(),
 }))
 
 describe('ConfigStore - Project Configuration', () => {
@@ -420,5 +421,290 @@ describe('ConfigStore - Cache Management', () => {
 
     expect(result.current.configs).toHaveLength(1)
     expect(result.current.configs[0].key).toBe('key2')
+  })
+})
+
+describe('ConfigStore - MCP Server Management', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Reset stores
+    useConfigStore.setState({
+      mcpServers: [],
+      mcpServersByScope: {
+        user: [],
+        project: [],
+        local: []
+      },
+      mcpStatusRefreshInterval: null,
+      error: null,
+    })
+  })
+
+  it('loads and categorizes MCP servers by scope', async () => {
+    const mockUserConfig = {
+      mcpServers: {
+        userServer: { type: 'stdio', command: 'python', description: 'User server' }
+      }
+    }
+    const mockProjectConfig = {
+      servers: {
+        projectServer: { type: 'http', url: 'http://localhost', description: 'Project server' }
+      }
+    }
+    const mockParsedServers = {
+      userMcpServers: [
+        {
+          name: 'userServer',
+          type: 'stdio' as const,
+          description: 'User server',
+          config: { command: 'python' },
+          status: 'inactive' as const,
+          sourcePath: '/home/user/.claude.json'
+        }
+      ],
+      projectMcpServers: [
+        {
+          name: 'projectServer',
+          type: 'http' as const,
+          description: 'Project server',
+          config: { url: 'http://localhost' },
+          status: 'inactive' as const,
+          sourcePath: './.mcp.json'
+        }
+      ],
+      inheritedMcpServers: []
+    }
+
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>)
+      .mockResolvedValueOnce(mockUserConfig)
+      .mockResolvedValueOnce(mockProjectConfig)
+    ;(configParser.parseMcpServers as MockedFunction<typeof configParser.parseMcpServers>).mockReturnValue(mockParsedServers as any)
+
+    const { result } = renderHook(() => useConfigStore())
+
+    await act(async () => {
+      await result.current.updateMcpServers()
+    })
+
+    expect(configParser.parseMcpServers).toHaveBeenCalledWith(mockUserConfig, mockProjectConfig)
+    expect(result.current.mcpServers).toHaveLength(2)
+    expect(result.current.mcpServersByScope.user).toHaveLength(1)
+    expect(result.current.mcpServersByScope.project).toHaveLength(1)
+    expect(result.current.mcpServersByScope.local).toHaveLength(0)
+  })
+
+  it('handles errors when loading MCP servers', async () => {
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>)
+      .mockRejectedValue(new Error('Failed to read config'))
+
+    const { result } = renderHook(() => useConfigStore())
+
+    await act(async () => {
+      await result.current.updateMcpServers()
+    })
+
+    expect(result.current.error).toContain('Failed to update MCP servers')
+  })
+
+  it('filters MCP servers by source', () => {
+    const mockServers = [
+      {
+        name: 'user-server',
+        type: 'stdio' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: '/home/user/.claude.json'
+      },
+      {
+        name: 'project-server',
+        type: 'http' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: './.mcp.json'
+      },
+      {
+        name: 'local-server',
+        type: 'sse' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: '/local/path/config.json'
+      }
+    ]
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      useConfigStore.setState({ mcpServers: mockServers as any })
+    })
+
+    const userServers = result.current.filterMcpServers({ source: 'user' })
+    const projectServers = result.current.filterMcpServers({ source: 'project' })
+    const localServers = result.current.filterMcpServers({ source: 'local' })
+
+    expect(userServers).toHaveLength(1)
+    expect(userServers[0].name).toBe('user-server')
+
+    expect(projectServers).toHaveLength(1)
+    expect(projectServers[0].name).toBe('project-server')
+
+    expect(localServers).toHaveLength(1)
+    expect(localServers[0].name).toBe('local-server')
+  })
+
+  it('filters MCP servers by type', () => {
+    const mockServers = [
+      {
+        name: 'http-server',
+        type: 'http' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: './.mcp.json'
+      },
+      {
+        name: 'stdio-server',
+        type: 'stdio' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: './.mcp.json'
+      }
+    ]
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      useConfigStore.setState({ mcpServers: mockServers as any })
+    })
+
+    const httpServers = result.current.filterMcpServers({ type: 'http' })
+    const stdioServers = result.current.filterMcpServers({ type: 'stdio' })
+
+    expect(httpServers).toHaveLength(1)
+    expect(httpServers[0].name).toBe('http-server')
+
+    expect(stdioServers).toHaveLength(1)
+    expect(stdioServers[0].name).toBe('stdio-server')
+  })
+
+  it('filters MCP servers by status', () => {
+    const mockServers = [
+      {
+        name: 'active-server',
+        type: 'stdio' as const,
+        config: {},
+        status: 'active' as const,
+        sourcePath: './.mcp.json'
+      },
+      {
+        name: 'inactive-server',
+        type: 'stdio' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: './.mcp.json'
+      }
+    ]
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      useConfigStore.setState({ mcpServers: mockServers as any })
+    })
+
+    const activeServers = result.current.filterMcpServers({ status: 'active' })
+    const inactiveServers = result.current.filterMcpServers({ status: 'inactive' })
+
+    expect(activeServers).toHaveLength(1)
+    expect(activeServers[0].name).toBe('active-server')
+
+    expect(inactiveServers).toHaveLength(1)
+    expect(inactiveServers[0].name).toBe('inactive-server')
+  })
+
+  it('filters MCP servers by search query', () => {
+    const mockServers = [
+      {
+        name: 'filesystem-server',
+        type: 'stdio' as const,
+        description: 'File system operations',
+        config: {},
+        status: 'active' as const,
+        sourcePath: './.mcp.json'
+      },
+      {
+        name: 'postgres-server',
+        type: 'http' as const,
+        description: 'PostgreSQL database',
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: './.mcp.json'
+      }
+    ]
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      useConfigStore.setState({ mcpServers: mockServers as any })
+    })
+
+    const fileServers = result.current.filterMcpServers({ search: 'file' })
+    const dbServers = result.current.filterMcpServers({ search: 'postgres' })
+
+    expect(fileServers).toHaveLength(1)
+    expect(fileServers[0].name).toBe('filesystem-server')
+
+    expect(dbServers).toHaveLength(1)
+    expect(dbServers[0].name).toBe('postgres-server')
+  })
+
+  it('sorts MCP servers by field and direction', () => {
+    const mockServers = [
+      {
+        name: 'zebra-server',
+        type: 'stdio' as const,
+        config: {},
+        status: 'active' as const,
+        sourcePath: './.mcp.json'
+      },
+      {
+        name: 'alpha-server',
+        type: 'http' as const,
+        config: {},
+        status: 'inactive' as const,
+        sourcePath: './.mcp.json'
+      }
+    ]
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      useConfigStore.setState({ mcpServers: mockServers as any })
+    })
+
+    const sortedAsc = result.current.sortMcpServers(mockServers as any, { field: 'name', direction: 'asc' })
+    const sortedDesc = result.current.sortMcpServers(mockServers as any, { field: 'name', direction: 'desc' })
+
+    expect(sortedAsc[0].name).toBe('alpha-server')
+    expect(sortedDesc[0].name).toBe('zebra-server')
+  })
+
+  it('starts and stops MCP status refresh interval', () => {
+    vi.useFakeTimers()
+
+    const { result } = renderHook(() => useConfigStore())
+
+    // Start refresh
+    act(() => {
+      result.current.startMcpStatusRefresh()
+    })
+
+    expect(result.current.mcpStatusRefreshInterval).not.toBeNull()
+
+    // Stop refresh
+    act(() => {
+      result.current.stopMcpStatusRefresh()
+    })
+
+    expect(result.current.mcpStatusRefreshInterval).toBeNull()
+
+    vi.useRealTimers()
   })
 })
