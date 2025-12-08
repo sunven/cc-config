@@ -4,6 +4,7 @@ mod config;
 mod types;
 
 use commands::config::{read_config, parse_config, watch_config};
+use commands::source::{get_source_location, open_in_editor, copy_to_clipboard};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,7 +29,10 @@ pub fn run() {
             greet,
             read_config,
             parse_config,
-            watch_config
+            watch_config,
+            get_source_location,
+            open_in_editor,
+            copy_to_clipboard
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

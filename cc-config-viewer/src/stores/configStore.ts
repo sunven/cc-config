@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { ConfigEntry, InheritanceChain, InheritanceMap, InheritanceResult } from '../types'
+import type { SourceLocation } from '../types/trace'
 import { readAndParseConfig, extractAllEntries, mergeConfigs } from '../lib/configParser'
 import { calculateInheritance } from '../lib/inheritanceCalculator'
 
@@ -25,6 +26,9 @@ interface ConfigStore {
   inheritanceMap: InheritanceMap
   viewMode: 'merged' | 'split'
 
+  // Source location tracking for Story 3.4
+  sourceLocations: Record<string, SourceLocation>
+
   // Loading states - only for initial load, not for cached switches
   isInitialLoading: boolean
   isBackgroundLoading: boolean
@@ -41,6 +45,12 @@ interface ConfigStore {
   // New inheritance actions for Story 3.2
   updateInheritanceChain: (userConfig: ConfigEntry[], projectConfig: ConfigEntry[]) => void
   setViewMode: (mode: 'merged' | 'split') => void
+
+  // Source location actions for Story 3.4
+  setSourceLocation: (configKey: string, location: SourceLocation) => void
+  getSourceLocation: (configKey: string) => SourceLocation | undefined
+  clearSourceLocations: () => void
+  removeSourceLocation: (configKey: string) => void
 
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
@@ -61,6 +71,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   inheritanceChain: { entries: [], resolved: {} },
   inheritanceMap: new Map(),
   viewMode: 'merged',
+  sourceLocations: {},
   isInitialLoading: true,
   isBackgroundLoading: false,
   isLoading: true, // Legacy alias - same as isInitialLoading
@@ -311,6 +322,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     configs: [],
     inheritanceChain: { entries: [], resolved: {} },
     inheritanceMap: new Map(),
+    sourceLocations: {},
     error: null,
     isInitialLoading: false,
     isLoading: false,
@@ -369,4 +381,27 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   },
 
   setViewMode: (mode: 'merged' | 'split') => set({ viewMode: mode }),
+
+  // Source location methods for Story 3.4
+  setSourceLocation: (configKey: string, location: SourceLocation) =>
+    set((state) => ({
+      sourceLocations: {
+        ...state.sourceLocations,
+        [configKey]: location
+      }
+    })),
+
+  getSourceLocation: (configKey: string) => {
+    const state = get()
+    return state.sourceLocations[configKey]
+  },
+
+  clearSourceLocations: () => set({ sourceLocations: {} }),
+
+  removeSourceLocation: (configKey: string) =>
+    set((state) => {
+      const newLocations = { ...state.sourceLocations }
+      delete newLocations[configKey]
+      return { sourceLocations: newLocations }
+    }),
 }))
