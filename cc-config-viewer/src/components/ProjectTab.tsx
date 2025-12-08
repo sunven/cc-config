@@ -1,7 +1,8 @@
-import React, { memo, useCallback } from 'react'
+import React, { memo, useCallback, useEffect } from 'react'
 import { useUiStore } from '../stores/uiStore'
 import { useConfigStore } from '../stores/configStore'
 import { Badge } from './ui/badge'
+import { InheritanceSummary } from './inheritance/InheritanceSummary'
 import type { Project } from '../types/project'
 
 interface ProjectTabProps {
@@ -14,6 +15,10 @@ export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ 
   const currentScope = useUiStore((state) => state.currentScope)
   const setCurrentScope = useUiStore((state) => state.setCurrentScope)
   const switchToScope = useConfigStore((state) => state.switchToScope)
+  const selectStats = useConfigStore((state) => state.selectStats)
+  const calculateStatsFromChain = useConfigStore((state) => state.calculateStatsFromChain)
+  const inheritanceStats = useConfigStore((state) => state.inheritanceStats)
+  const classifiedEntries = useConfigStore((state) => state.classifiedEntries)
 
   const isActive = currentScope === scope
   const label = scope === 'user' ? '用户级' : (project?.name || 'Project')
@@ -25,27 +30,52 @@ export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ 
     switchToScope(scope)
   }, [scope, setCurrentScope, switchToScope])
 
+  // Calculate stats when classifiedEntries change
+  useEffect(() => {
+    if (classifiedEntries.length > 0) {
+      calculateStatsFromChain()
+    }
+  }, [classifiedEntries, calculateStatsFromChain])
+
+  // Get stats
+  const stats = selectStats()
+
   return (
-    <button
-      className={`px-4 py-2 text-sm font-medium rounded-t-lg flex items-center gap-2 transition-colors duration-150 ${
-        isActive
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-      }`}
-      onClick={handleClick}
-    >
-      {label}
-      {scope === 'user' && (
-        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-          User
-        </Badge>
-      )}
+    <>
+      {/* Tab Button */}
+      <button
+        className={`px-4 py-2 text-sm font-medium rounded-t-lg flex items-center gap-2 transition-colors duration-150 ${
+          isActive
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        }`}
+        onClick={handleClick}
+      >
+        {label}
+        {scope === 'user' && (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            User
+          </Badge>
+        )}
+        {scope === 'project' && (
+          <Badge variant="secondary" className="bg-green-100 text-green-800">
+            Project
+          </Badge>
+        )}
+      </button>
+
+      {/* Inheritance Summary - shown for both user and project scopes */}
       {scope === 'project' && (
-        <Badge variant="secondary" className="bg-green-100 text-green-800">
-          Project
-        </Badge>
+        <div className="mt-4">
+          <InheritanceSummary
+            stats={stats}
+            isLoading={inheritanceStats.isCalculating}
+            error={inheritanceStats.error}
+            compact={true}
+          />
+        </div>
       )}
-    </button>
+    </>
   )
 }, (prevProps, nextProps) => {
   // Custom comparison - only re-render if props change

@@ -35,6 +35,9 @@
     "vitest": "^4.0.15"
   },
   "dependencies": {
+    "@nivo/bar": "^0.99.0",
+    "@nivo/core": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",

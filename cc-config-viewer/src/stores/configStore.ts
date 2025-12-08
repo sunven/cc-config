@@ -1,8 +1,11 @@
 import { create } from 'zustand'
-import type { ConfigEntry, InheritanceChain, InheritanceMap, InheritanceResult } from '../types'
+import type { ConfigEntry, InheritanceChain, InheritanceMap, InheritanceResult, InheritanceChainItem } from '../types'
 import type { SourceLocation } from '../types/trace'
+import type { InheritanceStats } from '../utils/statsCalculator'
+import type { InheritanceStatsState } from '../types/inheritance-summary'
 import { readAndParseConfig, extractAllEntries, mergeConfigs } from '../lib/configParser'
 import { calculateInheritance } from '../lib/inheritanceCalculator'
+import { calculateStats } from '../utils/statsCalculator'
 
 // Cache entry with timestamp for stale-while-revalidate pattern
 interface CacheEntry<T> {
@@ -24,10 +27,14 @@ interface ConfigStore {
 
   // New inheritance tracking for Story 3.2
   inheritanceMap: InheritanceMap
+  classifiedEntries: Array<InheritanceChainItem>
   viewMode: 'merged' | 'split'
 
   // Source location tracking for Story 3.4
   sourceLocations: Record<string, SourceLocation>
+
+  // Inheritance statistics for Story 3.5
+  inheritanceStats: InheritanceStatsState
 
   // Loading states - only for initial load, not for cached switches
   isInitialLoading: boolean
@@ -52,6 +59,14 @@ interface ConfigStore {
   clearSourceLocations: () => void
   removeSourceLocation: (configKey: string) => void
 
+  // Inheritance statistics actions for Story 3.5
+  updateStats: (stats: InheritanceStats) => void
+  setStatsCalculating: (isCalculating: boolean) => void
+  setStatsError: (error: string | null) => void
+  clearStats: () => void
+  calculateStatsFromChain: (chain?: InheritanceChain) => InheritanceStats | null
+  selectStats: () => InheritanceStats | null
+
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
   updateConfig: (key: string, value: any, sourceType: 'user' | 'project' | 'local') => void
@@ -70,8 +85,15 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   configs: [],
   inheritanceChain: { entries: [], resolved: {} },
   inheritanceMap: new Map(),
+  classifiedEntries: [],
   viewMode: 'merged',
   sourceLocations: {},
+  inheritanceStats: {
+    stats: null,
+    isCalculating: false,
+    lastUpdated: null,
+    error: null
+  },
   isInitialLoading: true,
   isBackgroundLoading: false,
   isLoading: true, // Legacy alias - same as isInitialLoading
@@ -195,6 +217,14 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         error: null
       })
 
+      // Update inheritance classification and calculate stats
+      // For stats calculation, we need both user and project configs
+      const userConfig = state.userConfigsCache?.data || []
+      if (scope === 'project' && userConfig.length > 0) {
+        state.updateInheritanceChain(userConfig, cachedConfigs)
+        state.calculateStatsFromChain()
+      }
+
       // If cache is stale, revalidate in background (stale-while-revalidate)
       if (!cacheValid) {
         set({ isBackgroundLoading: true })
@@ -218,6 +248,14 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
               },
               isBackgroundLoading: false
             })
+
+            // Update inheritance classification and calculate stats
+            // For stats calculation, we need both user and project configs
+            const userConfig = currentState.userConfigsCache?.data || []
+            if (scope === 'project' && userConfig.length > 0) {
+              currentState.updateInheritanceChain(userConfig, freshConfigs)
+              currentState.calculateStatsFromChain()
+            }
           }
         } catch (error) {
           set({ isBackgroundLoading: false })
@@ -244,6 +282,14 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
           isInitialLoading: false,
           isLoading: false
         })
+
+        // Update inheritance classification and calculate stats
+        // For stats calculation, we need both user and project configs
+        const userConfig = state.userConfigsCache?.data || []
+        if (scope === 'project' && userConfig.length > 0) {
+          state.updateInheritanceChain(userConfig, newConfigs)
+          state.calculateStatsFromChain()
+        }
       } catch (error) {
         set({
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -322,7 +368,14 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     configs: [],
     inheritanceChain: { entries: [], resolved: {} },
     inheritanceMap: new Map(),
+    classifiedEntries: [],
     sourceLocations: {},
+    inheritanceStats: {
+      stats: null,
+      isCalculating: false,
+      lastUpdated: null,
+      error: null
+    },
     error: null,
     isInitialLoading: false,
     isLoading: false,
@@ -377,7 +430,13 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
       })
     })
 
-    set({ inheritanceMap })
+    // Convert map to array for easier consumption
+    const classifiedEntries = Array.from(inheritanceMap.values())
+
+    set({
+      inheritanceMap,
+      classifiedEntries
+    })
   },
 
   setViewMode: (mode: 'merged' | 'split') => set({ viewMode: mode }),
@@ -404,4 +463,68 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
       delete newLocations[configKey]
       return { sourceLocations: newLocations }
     }),
+
+  // Inheritance statistics methods for Story 3.5
+  updateStats: (stats: InheritanceStats) =>
+    set({
+      inheritanceStats: {
+        stats,
+        isCalculating: false,
+        lastUpdated: Date.now(),
+        error: null
+      }
+    }),
+
+  setStatsCalculating: (isCalculating: boolean) =>
+    set((state) => ({
+      inheritanceStats: {
+        ...state.inheritanceStats,
+        isCalculating
+      }
+    })),
+
+  setStatsError: (error: string | null) =>
+    set((state) => ({
+      inheritanceStats: {
+        ...state.inheritanceStats,
+        error,
+        isCalculating: false
+      }
+    })),
+
+  clearStats: () =>
+    set((state) => ({
+      inheritanceStats: {
+        stats: null,
+        isCalculating: false,
+        lastUpdated: null,
+        error: null
+      }
+    })),
+
+  calculateStatsFromChain: (chain?: InheritanceChain): InheritanceStats | null => {
+    const state = get()
+    // Use classifiedEntries which has the proper classification
+    const classifiedEntries = state.classifiedEntries
+
+    if (classifiedEntries.length === 0) {
+      state.clearStats()
+      return null
+    }
+
+    try {
+      const stats = calculateStats(classifiedEntries)
+      state.updateStats(stats)
+      return stats
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to calculate stats'
+      state.setStatsError(errorMessage)
+      return null
+    }
+  },
+
+  selectStats: () => {
+    const state = get()
+    return state.inheritanceStats.stats
+  },
 }))
