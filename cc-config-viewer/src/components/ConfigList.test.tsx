@@ -54,7 +54,7 @@ describe('ConfigList', () => {
   it('displays source type for each config', () => {
     render(<ConfigList configs={mockConfigs} />)
 
-    const sourceElements = screen.getAllByText(/project|user/)
+    const sourceElements = screen.getAllByText(/Project Specific|User Level/)
     expect(sourceElements).toHaveLength(2)
   })
 
@@ -143,7 +143,7 @@ describe('ConfigList', () => {
 
       render(<ConfigList configs={userConfig} />)
 
-      const badge = screen.getByText('user')
+      const badge = screen.getByText('User Level')
       expect(badge).toHaveClass('bg-blue-100', 'text-blue-800')
     })
 
@@ -156,20 +156,20 @@ describe('ConfigList', () => {
 
       render(<ConfigList configs={projectConfig} />)
 
-      const badge = screen.getByText('project')
+      const badge = screen.getByText('Project Specific')
       expect(badge).toHaveClass('bg-green-100', 'text-green-800')
     })
 
-    it('applies gray badge for local source type', () => {
-      const localConfig: ConfigEntry[] = [{
+    it('applies gray badge for inherited source type', () => {
+      const inheritedConfig: ConfigEntry[] = [{
         key: 'test.key',
         value: 'test-value',
-        source: { type: 'local', path: '', priority: 3 }
+        source: { type: 'inherited', path: '', priority: 3 }
       }]
 
-      render(<ConfigList configs={localConfig} />)
+      render(<ConfigList configs={inheritedConfig} />)
 
-      const badge = screen.getByText('local')
+      const badge = screen.getByText('Inherited from User')
       expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
     })
   })

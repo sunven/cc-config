@@ -1,5 +1,5 @@
 export interface ConfigSource {
-  type: 'user' | 'project' | 'local'
+  type: 'user' | 'project' | 'inherited'
   path: string
   priority: number
 }

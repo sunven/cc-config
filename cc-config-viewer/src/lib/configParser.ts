@@ -21,7 +21,7 @@ export function stringifyConfig(config: Record<string, any>): string {
 
 export function extractConfigEntries(
   config: Record<string, any>,
-  source: 'user' | 'project' | 'local'
+  source: 'user' | 'project' | 'inherited'
 ): ConfigEntry[] {
   return Object.entries(config).map(([key, value]) => ({
     key,
@@ -30,7 +30,7 @@ export function extractConfigEntries(
   }))
 }
 
-export function extractMcpServers(config: Record<string, any>, source: 'user' | 'project' | 'local'): ConfigEntry[] {
+export function extractMcpServers(config: Record<string, any>, source: 'user' | 'project' | 'inherited'): ConfigEntry[] {
   const mcpServers = config.mcpServers || config.mcp_servers || {}
   return Object.entries(mcpServers).map(([key, value]) => ({
     key: `mcpServers.${key}`,
@@ -39,7 +39,7 @@ export function extractMcpServers(config: Record<string, any>, source: 'user' | 
   }))
 }
 
-export function extractSubAgents(config: Record<string, any>, source: 'user' | 'project' | 'local'): ConfigEntry[] {
+export function extractSubAgents(config: Record<string, any>, source: 'user' | 'project' | 'inherited'): ConfigEntry[] {
   const subAgents = config.subAgents || config.sub_agents || config.agents || {}
   return Object.entries(subAgents).map(([key, value]) => ({
     key: `subAgents.${key}`,
@@ -48,7 +48,7 @@ export function extractSubAgents(config: Record<string, any>, source: 'user' | '
   }))
 }
 
-export function extractAllEntries(config: Record<string, any>, source: 'user' | 'project' | 'local'): ConfigEntry[] {
+export function extractAllEntries(config: Record<string, any>, source: 'user' | 'project' | 'inherited'): ConfigEntry[] {
   const entries: ConfigEntry[] = []
 
   // Create a copy of config without mcpServers and subAgents to avoid double extraction

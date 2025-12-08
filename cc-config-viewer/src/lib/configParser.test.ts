@@ -77,11 +77,11 @@ describe('configParser', () => {
 
       const userEntries = extractConfigEntries(config, 'user')
       const projectEntries = extractConfigEntries(config, 'project')
-      const localEntries = extractConfigEntries(config, 'local')
+      const inheritedEntries = extractConfigEntries(config, 'inherited')
 
       expect(userEntries[0].source.priority).toBe(1)
       expect(projectEntries[0].source.priority).toBe(2)
-      expect(localEntries[0].source.priority).toBe(3)
+      expect(inheritedEntries[0].source.priority).toBe(3)
     })
   })
 
