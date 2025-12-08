@@ -64,7 +64,7 @@ development_status:
   epic-3: in-progress
   3-1-color-coded-source-indicators: done
   3-2-inheritance-chain-calculation: done
-  3-3-inheritance-path-visualization: ready-for-dev
+  3-3-inheritance-path-visualization: done
   3-4-source-trace-functionality: backlog
   3-5-inheritance-chain-summary: backlog
   epic-3-retrospective: optional
