@@ -19,7 +19,11 @@ describe('ConfigStore - Project Configuration', () => {
       configs: [],
       inheritanceChain: { entries: [], resolved: {} },
       isLoading: false,
+      isInitialLoading: false,
+      isBackgroundLoading: false,
       error: null,
+      userConfigsCache: null,
+      projectConfigsCache: {},
     })
     useUiStore.setState({
       currentScope: 'user',
@@ -179,5 +183,242 @@ describe('ConfigStore - Project Configuration', () => {
     })
 
     expect(result.current.isLoading).toBe(false)
+  })
+})
+
+describe('ConfigStore - Cache Management', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useConfigStore.setState({
+      configs: [],
+      inheritanceChain: { entries: [], resolved: {} },
+      isLoading: false,
+      isInitialLoading: false,
+      isBackgroundLoading: false,
+      error: null,
+      userConfigsCache: null,
+      projectConfigsCache: {},
+    })
+  })
+
+  it('caches user configs after loading', async () => {
+    const mockUserConfig = { setting: 'value' }
+    const mockEntries = [
+      { key: 'setting', value: 'value', source: { type: 'user', path: '', priority: 1 } },
+    ]
+
+    ;(configParser.readAndParseConfig as MockedFunction<typeof configParser.readAndParseConfig>).mockResolvedValue(mockUserConfig)
+    ;(configParser.extractAllEntries as MockedFunction<typeof configParser.extractAllEntries>).mockReturnValue(mockEntries as any)
+
+    const { result } = renderHook(() => useConfigStore())
+
+    await act(async () => {
+      await result.current.loadUserConfigs()
+    })
+
+    // Cache should be populated
+    expect(result.current.userConfigsCache).not.toBeNull()
+    expect(result.current.userConfigsCache?.data).toEqual(mockEntries)
+  })
+
+  it('returns cached data when cache is valid', async () => {
+    const cachedEntries = [
+      { key: 'cached', value: 'data', source: { type: 'user', path: '', priority: 1 } },
+    ]
+
+    // Pre-populate cache
+    useConfigStore.setState({
+      userConfigsCache: {
+        data: cachedEntries as any,
+        timestamp: Date.now(),
+      },
+    })
+
+    const { result } = renderHook(() => useConfigStore())
+
+    const data = await act(async () => {
+      return await result.current.loadUserConfigs()
+    })
+
+    // Should return cached data without calling API
+    expect(configParser.readAndParseConfig).not.toHaveBeenCalled()
+    expect(data).toEqual(cachedEntries)
+  })
+
+  it('invalidates user cache correctly', async () => {
+    // Pre-populate cache
+    useConfigStore.setState({
+      userConfigsCache: {
+        data: [{ key: 'test', value: 'data', source: { type: 'user', path: '', priority: 1 } }] as any,
+        timestamp: Date.now(),
+      },
+    })
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      result.current.invalidateCache('user')
+    })
+
+    expect(result.current.userConfigsCache).toBeNull()
+  })
+
+  it('invalidates project cache correctly', async () => {
+    // Pre-populate cache
+    useConfigStore.setState({
+      projectConfigsCache: {
+        'default': {
+          data: [{ key: 'test', value: 'data', source: { type: 'project', path: '', priority: 2 } }] as any,
+          timestamp: Date.now(),
+        },
+      },
+    })
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      result.current.invalidateCache('project')
+    })
+
+    expect(result.current.projectConfigsCache['default']).toBeUndefined()
+  })
+
+  it('invalidates all caches when no scope specified', async () => {
+    // Pre-populate both caches
+    useConfigStore.setState({
+      userConfigsCache: {
+        data: [] as any,
+        timestamp: Date.now(),
+      },
+      projectConfigsCache: {
+        'default': {
+          data: [] as any,
+          timestamp: Date.now(),
+        },
+      },
+    })
+
+    const { result } = renderHook(() => useConfigStore())
+
+    act(() => {
+      result.current.invalidateCache()
+    })
+
+    expect(result.current.userConfigsCache).toBeNull()
+    expect(result.current.projectConfigsCache).toEqual({})
+  })
+
+  it('checks cache validity correctly', () => {
+    const { result } = renderHook(() => useConfigStore())
+
+    // No cache - should be invalid
+    expect(result.current.isCacheValid('user')).toBe(false)
+
+    // Set fresh cache
+    act(() => {
+      useConfigStore.setState({
+        userConfigsCache: {
+          data: [],
+          timestamp: Date.now(),
+        },
+      })
+    })
+
+    expect(result.current.isCacheValid('user')).toBe(true)
+
+    // Set stale cache (6 minutes old)
+    act(() => {
+      useConfigStore.setState({
+        userConfigsCache: {
+          data: [],
+          timestamp: Date.now() - 6 * 60 * 1000,
+        },
+      })
+    })
+
+    expect(result.current.isCacheValid('user')).toBe(false)
+  })
+
+  it('getConfigsForScope returns cached data or empty array', () => {
+    const cachedEntries = [
+      { key: 'cached', value: 'data', source: { type: 'user', path: '', priority: 1 } },
+    ]
+
+    const { result } = renderHook(() => useConfigStore())
+
+    // No cache - should return empty array
+    expect(result.current.getConfigsForScope('user')).toEqual([])
+
+    // Set cache
+    act(() => {
+      useConfigStore.setState({
+        userConfigsCache: {
+          data: cachedEntries as any,
+          timestamp: Date.now(),
+        },
+      })
+    })
+
+    expect(result.current.getConfigsForScope('user')).toEqual(cachedEntries)
+  })
+
+  it('getLastFetchTime returns correct timestamp', () => {
+    const { result } = renderHook(() => useConfigStore())
+    const now = Date.now()
+
+    // No cache - should return null
+    expect(result.current.getLastFetchTime('user')).toBeNull()
+
+    // Set cache
+    act(() => {
+      useConfigStore.setState({
+        userConfigsCache: {
+          data: [],
+          timestamp: now,
+        },
+      })
+    })
+
+    expect(result.current.getLastFetchTime('user')).toBe(now)
+  })
+
+  it('updateConfig updates existing config', () => {
+    const { result } = renderHook(() => useConfigStore())
+
+    // Add initial config
+    act(() => {
+      result.current.updateConfig('testKey', 'initialValue', 'user')
+    })
+
+    expect(result.current.configs[0].value).toBe('initialValue')
+
+    // Update same key
+    act(() => {
+      result.current.updateConfig('testKey', 'updatedValue', 'user')
+    })
+
+    expect(result.current.configs).toHaveLength(1)
+    expect(result.current.configs[0].value).toBe('updatedValue')
+  })
+
+  it('removeConfig removes config by path', () => {
+    const { result } = renderHook(() => useConfigStore())
+
+    // Set up configs with paths
+    act(() => {
+      useConfigStore.setState({
+        configs: [
+          { key: 'key1', value: 'value1', source: { type: 'user', path: '/path/1', priority: 1 } },
+          { key: 'key2', value: 'value2', source: { type: 'user', path: '/path/2', priority: 1 } },
+        ] as any,
+      })
+    })
+
+    act(() => {
+      result.current.removeConfig('/path/1')
+    })
+
+    expect(result.current.configs).toHaveLength(1)
+    expect(result.current.configs[0].key).toBe('key2')
   })
 })

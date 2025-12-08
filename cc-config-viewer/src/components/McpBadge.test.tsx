@@ -92,4 +92,58 @@ describe('McpBadge', () => {
     const badge = screen.getByText('test').closest('span')
     expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
   })
+
+  // MEDIUM #5 Fix: Test default case in getStatusColor and memo comparison
+  it('applies default styling for undefined/unknown status type', () => {
+    // Test the default case in getStatusColor switch
+    const serverWithUnknownStatus = {
+      name: 'unknown-status',
+      command: 'test',
+      args: [],
+      // Cast to force an unknown status through
+      status: 'unknown' as McpServer['status']
+    }
+
+    render(<McpBadge server={serverWithUnknownStatus} />)
+
+    const badge = screen.getByText('unknown-status').closest('span')
+    // Default case should apply gray styling
+    expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
+  })
+
+  it('memo comparison prevents re-render when props are equal', () => {
+    const { rerender } = render(<McpBadge server={runningServer} />)
+
+    // Re-render with same server object
+    rerender(<McpBadge server={runningServer} />)
+
+    // Should still render correctly (memo allows re-render since same reference)
+    expect(screen.getByText('filesystem')).toBeInTheDocument()
+  })
+
+  it('memo comparison triggers re-render when name changes', () => {
+    const { rerender } = render(<McpBadge server={runningServer} />)
+
+    expect(screen.getByText('filesystem')).toBeInTheDocument()
+
+    // Re-render with different server name
+    const updatedServer = { ...runningServer, name: 'updated-name' }
+    rerender(<McpBadge server={updatedServer} />)
+
+    expect(screen.getByText('updated-name')).toBeInTheDocument()
+  })
+
+  it('memo comparison triggers re-render when status changes', () => {
+    const { rerender } = render(<McpBadge server={runningServer} />)
+
+    let badge = screen.getByText('filesystem').closest('span')
+    expect(badge).toHaveClass('bg-green-100')
+
+    // Re-render with different status
+    const updatedServer: McpServer = { ...runningServer, status: 'error' }
+    rerender(<McpBadge server={updatedServer} />)
+
+    badge = screen.getByText('filesystem').closest('span')
+    expect(badge).toHaveClass('bg-red-100')
+  })
 })

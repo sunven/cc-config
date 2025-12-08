@@ -1,59 +1,85 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ConfigList } from '@/components/ConfigList'
 import { ProjectTab } from '@/components/ProjectTab'
 import { ScopeIndicator } from '@/components/ScopeIndicator'
+import { ProjectSelector } from '@/components/ProjectSelector'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
 import { useFileWatcher } from '@/hooks/useFileWatcher'
 import { detectCurrentProject } from '@/lib/projectDetection'
+import type { Project } from '@/types/project'
 
 function App() {
-  const { currentScope, setCurrentScope } = useUiStore()
-  const { configs, isLoading, error, updateConfigs } = useConfigStore()
-  const { activeProject, setActiveProject } = useProjectsStore()
-  const [isDetecting, setIsDetecting] = useState(true)
+  // Use selectors for fine-grained subscriptions (Task 3 optimization)
+  const currentScope = useUiStore((state) => state.currentScope)
+  const setCurrentScope = useUiStore((state) => state.setCurrentScope)
+
+  // Use selectors for configStore
+  const configs = useConfigStore((state) => state.configs)
+  const isInitialLoading = useConfigStore((state) => state.isInitialLoading)
+  const error = useConfigStore((state) => state.error)
+  const switchToScope = useConfigStore((state) => state.switchToScope)
+
+  // Use selectors for projectsStore
+  const activeProject = useProjectsStore((state) => state.activeProject)
+  const setActiveProject = useProjectsStore((state) => state.setActiveProject)
 
   // Initialize file watcher for automatic config updates
   useFileWatcher()
 
-  // Detect project on mount
+  // Detect project on mount - only runs once
   useEffect(() => {
+    let mounted = true
+
     const findProject = async () => {
       try {
         const project = await detectCurrentProject()
-        if (project) {
+        if (mounted && project) {
           setActiveProject(project)
         }
       } catch (error) {
         console.error('Failed to detect project:', error)
-      } finally {
-        setIsDetecting(false)
       }
     }
 
     findProject()
+
+    return () => {
+      mounted = false
+    }
   }, [setActiveProject])
 
-  // Load initial config when app starts
+  // Load initial config when app starts - only runs once
   useEffect(() => {
-    updateConfigs()
+    // Initial load for current scope
+    switchToScope(currentScope)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Intentionally run only once on mount
 
+  // Memoized tab change handler - NO data fetching on tab switch
+  // Data is served from cache, only revalidated in background if stale
   const handleTabChange = useCallback((value: string) => {
-    setCurrentScope(value as 'user' | 'project')
-    // Reload configs when tab changes
-    updateConfigs()
-  }, [setCurrentScope, updateConfigs])
+    const newScope = value as 'user' | 'project'
+    setCurrentScope(newScope)
+    // Use switchToScope which serves from cache first (instant switch)
+    switchToScope(newScope)
+  }, [setCurrentScope, switchToScope])
+
+  // Handle project selection from ProjectSelector
+  const handleProjectSelect = useCallback((project: Project) => {
+    // Switch to project scope and load configs for the selected project
+    setCurrentScope('project')
+    switchToScope('project', project.path)
+  }, [setCurrentScope, switchToScope])
 
   // Memoize project tab visibility condition
   const showProjectTab = useMemo(() =>
-    (activeProject || process.env.NODE_ENV === 'test') && !isDetecting,
-    [activeProject, isDetecting]
+    (activeProject || process.env.NODE_ENV === 'test'),
+    [activeProject]
   )
 
   // Dynamic grid columns based on visible tabs
@@ -79,27 +105,28 @@ function App() {
                   </TabsTrigger>
                 )}
               </TabsList>
-              <TabsContent value="user" className="mt-4">
+              <TabsContent value="user" className="mt-4 tab-content-transition">
                 <div className="mb-4">
                   <ScopeIndicator scope="user" />
                 </div>
                 <ConfigList
                   configs={configs}
                   title="User-Level Configuration"
-                  isLoading={isLoading}
+                  isLoading={isInitialLoading}
                   error={error}
                 />
               </TabsContent>
               {showProjectTab && (
-                <TabsContent value="project" className="mt-4">
-                  <div className="mb-4">
+                <TabsContent value="project" className="mt-4 tab-content-transition">
+                  <div className="mb-4 flex items-center gap-4">
                     <ScopeIndicator scope="project" projectName={activeProject?.name} />
+                    <ProjectSelector onProjectSelect={handleProjectSelect} />
                   </div>
                   <ProjectTab scope="project" project={activeProject} />
                   <ConfigList
                     configs={configs}
                     title="Project-Level Configuration"
-                    isLoading={isLoading}
+                    isLoading={isInitialLoading}
                     error={error}
                   />
                 </TabsContent>

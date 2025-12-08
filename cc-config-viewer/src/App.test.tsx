@@ -32,26 +32,37 @@ const mockProject = {
 }
 
 vi.mock('@/stores/uiStore', () => ({
-  useUiStore: vi.fn(() => ({
-    currentScope: 'user',
-    setCurrentScope: mockSetCurrentScope,
-  })),
+  useUiStore: vi.fn((selector) => {
+    const state = {
+      currentScope: 'user',
+      setCurrentScope: mockSetCurrentScope,
+    }
+    return typeof selector === 'function' ? selector(state) : state
+  }),
 }))
 
 vi.mock('@/stores/configStore', () => ({
-  useConfigStore: vi.fn(() => ({
-    configs: [],
-    isLoading: false,
-    error: null,
-    updateConfigs: mockUpdateConfigs,
-  })),
+  useConfigStore: vi.fn((selector) => {
+    const state = {
+      configs: [],
+      isLoading: false,
+      isInitialLoading: false,
+      error: null,
+      updateConfigs: mockUpdateConfigs,
+      switchToScope: vi.fn(),
+    }
+    return typeof selector === 'function' ? selector(state) : state
+  }),
 }))
 
 vi.mock('@/stores/projectsStore', () => ({
-  useProjectsStore: vi.fn(() => ({
-    activeProject: mockProject,
-    setActiveProject: mockSetActiveProject,
-  })),
+  useProjectsStore: vi.fn((selector) => {
+    const state = {
+      activeProject: mockProject,
+      setActiveProject: mockSetActiveProject,
+    }
+    return typeof selector === 'function' ? selector(state) : state
+  }),
 }))
 
 vi.mock('@/lib/projectDetection', () => ({

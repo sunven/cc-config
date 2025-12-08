@@ -55,9 +55,9 @@ development_status:
   epic-2: contexted
   2-1-user-level-scope-tab: done
   2-2-project-level-scope-tab: done
-  2-3-current-scope-indicator: review
-  2-4-scope-switching-performance: backlog
-  2-5-multi-project-navigation: backlog
+  2-3-current-scope-indicator: done
+  2-4-scope-switching-performance: done
+  2-5-multi-project-navigation: done
   epic-2-retrospective: optional
 
   # Epic 3: Configuration Source Identification

@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { memo } from 'react'
 import type { McpServer } from '../types'
 
 interface McpBadgeProps {
   server: McpServer
 }
 
-export const McpBadge: React.FC<McpBadgeProps> = ({ server }) => {
+export const McpBadge: React.FC<McpBadgeProps> = memo(function McpBadge({ server }) {
   const getStatusColor = (status: McpServer['status']) => {
     switch (status) {
       case 'running':
@@ -29,4 +29,10 @@ export const McpBadge: React.FC<McpBadgeProps> = ({ server }) => {
       <span className="ml-1 w-2 h-2 rounded-full bg-current opacity-50" />
     </span>
   )
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if server content changes
+  return (
+    prevProps.server.name === nextProps.server.name &&
+    prevProps.server.status === nextProps.server.status
+  )
+})

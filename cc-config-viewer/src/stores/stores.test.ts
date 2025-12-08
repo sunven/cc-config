@@ -22,7 +22,11 @@ describe('Zustand Stores', () => {
         configs: [],
         inheritanceChain: { entries: [], resolved: {} },
         isLoading: false,
+        isInitialLoading: false,
+        isBackgroundLoading: false,
         error: null,
+        userConfigsCache: null,
+        projectConfigsCache: {},
       })
       // Reset UiStore state
       useUiStore.setState({
@@ -143,6 +147,270 @@ describe('Zustand Stores', () => {
         result.current.removeProject('1')
       })
       expect(result.current.projects).toHaveLength(0)
+    })
+
+    // HIGH #1 Fix: Additional tests for projectsStore cache functions
+    describe('ProjectsStore - Cache Functions', () => {
+      beforeEach(() => {
+        useProjectsStore.setState({
+          projects: [],
+          activeProject: null,
+          projectConfigsCache: {},
+        })
+      })
+
+      it('caches project configs correctly', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        const mockConfigs = [
+          { key: 'test', value: 'data', source: { type: 'project' as const, path: '', priority: 2 } },
+        ]
+
+        act(() => {
+          result.current.cacheProjectConfigs('/test/path', mockConfigs as any)
+        })
+
+        expect(result.current.projectConfigsCache['/test/path']).toBeDefined()
+        expect(result.current.projectConfigsCache['/test/path'].data).toEqual(mockConfigs)
+      })
+
+      it('getProjectConfigs returns cached data', () => {
+        const mockConfigs = [
+          { key: 'cached', value: 'data', source: { type: 'project' as const, path: '', priority: 2 } },
+        ]
+
+        useProjectsStore.setState({
+          projectConfigsCache: {
+            '/test/path': {
+              data: mockConfigs as any,
+              timestamp: Date.now(),
+            },
+          },
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+        const cached = result.current.getProjectConfigs('/test/path')
+
+        expect(cached).toEqual(mockConfigs)
+      })
+
+      it('getProjectConfigs returns null for non-cached path', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        const cached = result.current.getProjectConfigs('/non-existent')
+
+        expect(cached).toBeNull()
+      })
+
+      it('isProjectCacheValid returns false for non-cached path', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.isProjectCacheValid('/non-existent')).toBe(false)
+      })
+
+      it('isProjectCacheValid returns true for fresh cache', () => {
+        useProjectsStore.setState({
+          projectConfigsCache: {
+            '/test/path': {
+              data: [],
+              timestamp: Date.now(),
+            },
+          },
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.isProjectCacheValid('/test/path')).toBe(true)
+      })
+
+      it('isProjectCacheValid returns false for stale cache', () => {
+        useProjectsStore.setState({
+          projectConfigsCache: {
+            '/test/path': {
+              data: [],
+              timestamp: Date.now() - 6 * 60 * 1000, // 6 minutes old
+            },
+          },
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.isProjectCacheValid('/test/path')).toBe(false)
+      })
+
+      it('invalidateProjectCache removes specific project cache', () => {
+        useProjectsStore.setState({
+          projectConfigsCache: {
+            '/path1': { data: [], timestamp: Date.now() },
+            '/path2': { data: [], timestamp: Date.now() },
+          },
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+
+        act(() => {
+          result.current.invalidateProjectCache('/path1')
+        })
+
+        expect(result.current.projectConfigsCache['/path1']).toBeUndefined()
+        expect(result.current.projectConfigsCache['/path2']).toBeDefined()
+      })
+
+      it('invalidateProjectCache clears all project caches when no path specified', () => {
+        useProjectsStore.setState({
+          projectConfigsCache: {
+            '/path1': { data: [], timestamp: Date.now() },
+            '/path2': { data: [], timestamp: Date.now() },
+          },
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+
+        act(() => {
+          result.current.invalidateProjectCache()
+        })
+
+        expect(result.current.projectConfigsCache).toEqual({})
+      })
+    })
+
+    // Story 2.5 - Multi-Project Navigation store tests
+    describe('ProjectsStore - Multi-Project Navigation (Story 2.5)', () => {
+      beforeEach(() => {
+        useProjectsStore.setState({
+          projects: [],
+          activeProject: null,
+          projectConfigsCache: {},
+          isLoadingProjects: false,
+          projectsError: null,
+          sortOrder: 'recency',
+        })
+      })
+
+      it('has isLoadingProjects state initialized to false', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.isLoadingProjects).toBe(false)
+      })
+
+      it('has projectsError state initialized to null', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.projectsError).toBeNull()
+      })
+
+      it('has sortOrder state initialized to recency', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.sortOrder).toBe('recency')
+      })
+
+      it('loadProjects populates projects array', async () => {
+        const { result } = renderHook(() => useProjectsStore())
+
+        await act(async () => {
+          await result.current.loadProjects()
+        })
+
+        // Should have loaded projects (may be empty if no user config)
+        expect(Array.isArray(result.current.projects)).toBe(true)
+        expect(result.current.isLoadingProjects).toBe(false)
+      })
+
+      it('updateProjectLastAccessed updates project lastAccessed field', () => {
+        const testProject = {
+          id: 'test-1',
+          name: 'Test Project',
+          path: '/test/path',
+          configPath: '/test/config',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastAccessed: null,
+        }
+
+        useProjectsStore.setState({
+          projects: [testProject],
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+
+        act(() => {
+          result.current.updateProjectLastAccessed('test-1')
+        })
+
+        const updatedProject = result.current.projects.find((p) => p.id === 'test-1')
+        expect(updatedProject?.lastAccessed).toBeDefined()
+        expect(updatedProject?.lastAccessed).not.toBeNull()
+      })
+
+      it('setSortOrder updates sort order', () => {
+        const { result } = renderHook(() => useProjectsStore())
+
+        act(() => {
+          result.current.setSortOrder('name')
+        })
+
+        expect(result.current.sortOrder).toBe('name')
+
+        act(() => {
+          result.current.setSortOrder('recency')
+        })
+
+        expect(result.current.sortOrder).toBe('recency')
+      })
+
+      it('getProjectSummary returns project summary', () => {
+        const testProject = {
+          id: 'test-1',
+          name: 'Test Project',
+          path: '/test/path',
+          configPath: '/test/config',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastAccessed: new Date(),
+          mcpCount: 3,
+          agentCount: 2,
+        }
+
+        useProjectsStore.setState({
+          projects: [testProject],
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+        const summary = result.current.getProjectSummary('test-1')
+
+        expect(summary).not.toBeNull()
+        expect(summary?.project.id).toBe('test-1')
+        expect(summary?.mcpCount).toBe(3)
+        expect(summary?.agentCount).toBe(2)
+      })
+
+      it('getProjectSummary returns null for non-existent project', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        const summary = result.current.getProjectSummary('non-existent')
+
+        expect(summary).toBeNull()
+      })
+
+      it('persists lastAccessed to localStorage', () => {
+        const testProject = {
+          id: 'test-1',
+          name: 'Test Project',
+          path: '/test/path',
+          configPath: '/test/config',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastAccessed: null,
+        }
+
+        useProjectsStore.setState({
+          projects: [testProject],
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+
+        act(() => {
+          result.current.updateProjectLastAccessed('test-1')
+        })
+
+        // Check localStorage was updated
+        const stored = localStorage.getItem('cc-config-project-last-accessed')
+        expect(stored).toBeDefined()
+        const parsed = JSON.parse(stored || '{}')
+        expect(parsed['test-1']).toBeDefined()
+      })
     })
   })
 

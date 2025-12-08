@@ -627,3 +627,8 @@ No debug issues encountered during implementation.
   - [MEDIUM] Fixed grid-cols to be dynamic (grid-cols-1/2) based on project tab visibility
   - [LOW] Added role="status", aria-live="polite", aria-label to ScopeIndicator
   - 203 tests passing (19 test files) after fixes
+- **2025-12-08**: Second Code Review Fixes Applied
+  - [HIGH] Fixed TypeScript compilation errors (removed unused imports in useFileWatcher.test.ts and configStore.test.ts)
+  - [MEDIUM] Fixed InheritedIndicator hardcoded source - now dynamically uses config.source.type
+  - [MEDIUM] Fixed story status inconsistency (sprint-status.yaml updated to 'done')
+  - Updated File List to reflect all modified files

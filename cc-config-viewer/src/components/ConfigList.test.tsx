@@ -108,4 +108,136 @@ describe('ConfigList', () => {
     const configEntries = document.querySelectorAll('.border-b')
     expect(configEntries).toHaveLength(mockConfigs.length)
   })
+
+  // MEDIUM #6 Fix: Test loading and error states, and default cases
+  describe('Loading and Error States', () => {
+    it('displays loading state', () => {
+      render(<ConfigList configs={[]} isLoading={true} />)
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+      expect(screen.getByText('Loading configuration...')).toBeInTheDocument()
+    })
+
+    it('displays error state', () => {
+      render(<ConfigList configs={[]} error="Failed to load config" />)
+      expect(screen.getByText('Error: Failed to load config')).toBeInTheDocument()
+    })
+
+    it('shows title in loading state', () => {
+      render(<ConfigList configs={[]} title="Test Config" isLoading={true} />)
+      expect(screen.getByText('Test Config')).toBeInTheDocument()
+    })
+
+    it('shows title in error state', () => {
+      render(<ConfigList configs={[]} title="Test Config" error="Error!" />)
+      expect(screen.getByText('Test Config')).toBeInTheDocument()
+    })
+  })
+
+  describe('Source Badge Variants', () => {
+    it('applies blue badge for user source type', () => {
+      const userConfig: ConfigEntry[] = [{
+        key: 'test.key',
+        value: 'test-value',
+        source: { type: 'user', path: '', priority: 1 }
+      }]
+
+      render(<ConfigList configs={userConfig} />)
+
+      const badge = screen.getByText('user')
+      expect(badge).toHaveClass('bg-blue-100', 'text-blue-800')
+    })
+
+    it('applies green badge for project source type', () => {
+      const projectConfig: ConfigEntry[] = [{
+        key: 'test.key',
+        value: 'test-value',
+        source: { type: 'project', path: '', priority: 2 }
+      }]
+
+      render(<ConfigList configs={projectConfig} />)
+
+      const badge = screen.getByText('project')
+      expect(badge).toHaveClass('bg-green-100', 'text-green-800')
+    })
+
+    it('applies gray badge for local source type', () => {
+      const localConfig: ConfigEntry[] = [{
+        key: 'test.key',
+        value: 'test-value',
+        source: { type: 'local', path: '', priority: 3 }
+      }]
+
+      render(<ConfigList configs={localConfig} />)
+
+      const badge = screen.getByText('local')
+      expect(badge).toHaveClass('bg-gray-100', 'text-gray-800')
+    })
+  })
+
+  describe('Memo Comparison', () => {
+    it('re-renders when configs length changes', () => {
+      const { rerender } = render(<ConfigList configs={mockConfigs} />)
+
+      expect(screen.getAllByText(/api\.url|model\.name/)).toHaveLength(2)
+
+      // Add another config
+      const updatedConfigs = [
+        ...mockConfigs,
+        {
+          key: 'new.key',
+          value: 'new-value',
+          source: { type: 'project' as const, path: '', priority: 1 }
+        }
+      ]
+
+      rerender(<ConfigList configs={updatedConfigs} />)
+
+      expect(screen.getByText('new.key')).toBeInTheDocument()
+    })
+
+    it('re-renders when config value changes', () => {
+      const { rerender } = render(<ConfigList configs={mockConfigs} />)
+
+      expect(screen.getByText('https://api.example.com')).toBeInTheDocument()
+
+      // Change a config value
+      const updatedConfigs = mockConfigs.map((c, i) =>
+        i === 0 ? { ...c, value: 'https://new-api.example.com' } : c
+      )
+
+      rerender(<ConfigList configs={updatedConfigs} />)
+
+      expect(screen.getByText('https://new-api.example.com')).toBeInTheDocument()
+    })
+
+    it('re-renders when isLoading changes', () => {
+      const { rerender } = render(<ConfigList configs={mockConfigs} isLoading={false} />)
+
+      expect(screen.getByText('api.url')).toBeInTheDocument()
+
+      rerender(<ConfigList configs={mockConfigs} isLoading={true} />)
+
+      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
+    })
+
+    it('re-renders when error changes', () => {
+      const { rerender } = render(<ConfigList configs={mockConfigs} error={null} />)
+
+      expect(screen.getByText('api.url')).toBeInTheDocument()
+
+      rerender(<ConfigList configs={mockConfigs} error="New error" />)
+
+      expect(screen.getByText('Error: New error')).toBeInTheDocument()
+    })
+
+    it('re-renders when title changes', () => {
+      const { rerender } = render(<ConfigList configs={[]} title="Old Title" />)
+
+      expect(screen.getByText('Old Title')).toBeInTheDocument()
+
+      rerender(<ConfigList configs={[]} title="New Title" />)
+
+      expect(screen.getByText('New Title')).toBeInTheDocument()
+    })
+  })
 })

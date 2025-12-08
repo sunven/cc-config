@@ -1,4 +1,4 @@
-import React, { memo } from 'react'
+import React, { memo, useCallback } from 'react'
 import { useUiStore } from '../stores/uiStore'
 import { useConfigStore } from '../stores/configStore'
 import { Badge } from './ui/badge'
@@ -10,21 +10,24 @@ interface ProjectTabProps {
 }
 
 export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ scope, project }) {
-  const { currentScope, setCurrentScope } = useUiStore()
-  const { updateConfigs } = useConfigStore()
+  // Use selectors for fine-grained subscriptions - prevent re-renders from unrelated state changes
+  const currentScope = useUiStore((state) => state.currentScope)
+  const setCurrentScope = useUiStore((state) => state.setCurrentScope)
+  const switchToScope = useConfigStore((state) => state.switchToScope)
 
   const isActive = currentScope === scope
   const label = scope === 'user' ? '用户级' : (project?.name || 'Project')
 
-  const handleClick = () => {
+  // Memoize click handler to prevent unnecessary re-renders
+  const handleClick = useCallback(() => {
     setCurrentScope(scope)
-    // Update configs when switching to this scope
-    updateConfigs()
-  }
+    // Use switchToScope which serves from cache first (instant switch)
+    switchToScope(scope)
+  }, [scope, setCurrentScope, switchToScope])
 
   return (
     <button
-      className={`px-4 py-2 text-sm font-medium rounded-t-lg flex items-center gap-2 ${
+      className={`px-4 py-2 text-sm font-medium rounded-t-lg flex items-center gap-2 transition-colors duration-150 ${
         isActive
           ? 'bg-blue-600 text-white'
           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -43,5 +46,12 @@ export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ 
         </Badge>
       )}
     </button>
+  )
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if props change
+  return (
+    prevProps.scope === nextProps.scope &&
+    prevProps.project?.id === nextProps.project?.id &&
+    prevProps.project?.name === nextProps.project?.name
   )
 })

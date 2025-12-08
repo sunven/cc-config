@@ -35,7 +35,11 @@ const resetAllStores = () => {
     configs: [],
     inheritanceChain: { entries: [], resolved: {} },
     isLoading: false,
+    isInitialLoading: false,
+    isBackgroundLoading: false,
     error: null,
+    userConfigsCache: null,
+    projectConfigsCache: {},
   })
   useUiStore.setState({
     currentScope: 'user',
@@ -53,6 +57,7 @@ const resetAllStores = () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     },
+    projectConfigsCache: {},
   })
 }
 

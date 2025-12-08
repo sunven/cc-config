@@ -2,6 +2,16 @@ import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 import { act } from '@testing-library/react'
 
+// Mock ResizeObserver for cmdk (Command component)
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// Mock scrollIntoView for cmdk
+Element.prototype.scrollIntoView = vi.fn()
+
 // Mock Tauri APIs globally for all tests
 // This prevents errors when components use Tauri functions in tests
 

@@ -1,64 +1,270 @@
 import { create } from 'zustand'
 import type { ConfigEntry, InheritanceChain } from '../types'
 import { readAndParseConfig, extractAllEntries, mergeConfigs } from '../lib/configParser'
-import { useUiStore } from './uiStore'
+
+// Cache entry with timestamp for stale-while-revalidate pattern
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+}
+
+// Cache validity duration (5 minutes)
+const CACHE_VALIDITY_MS = 5 * 60 * 1000
 
 interface ConfigStore {
+  // Cached configs by scope
+  userConfigsCache: CacheEntry<ConfigEntry[]> | null
+  projectConfigsCache: Record<string, CacheEntry<ConfigEntry[]>>
+
+  // Current display state
   configs: ConfigEntry[]
   inheritanceChain: InheritanceChain
-  isLoading: boolean
+
+  // Loading states - only for initial load, not for cached switches
+  isInitialLoading: boolean
+  isBackgroundLoading: boolean
+  isLoading: boolean // Legacy alias for backward compatibility
   error: string | null
+
+  // Actions
+  loadUserConfigs: () => Promise<ConfigEntry[]>
+  loadProjectConfigs: (projectPath?: string) => Promise<ConfigEntry[]>
+  getConfigsForScope: (scope: 'user' | 'project', projectPath?: string) => ConfigEntry[]
+  switchToScope: (scope: 'user' | 'project', projectPath?: string) => Promise<void>
+  invalidateCache: (scope?: 'user' | 'project', projectPath?: string) => void
+
+  // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
   updateConfig: (key: string, value: any, sourceType: 'user' | 'project' | 'local') => void
   removeConfig: (path: string) => void
   clearConfigs: () => void
+
+  // Cache utilities
+  isCacheValid: (scope: 'user' | 'project', projectPath?: string) => boolean
+  getLastFetchTime: (scope: 'user' | 'project', projectPath?: string) => number | null
 }
 
-export const useConfigStore = create<ConfigStore>((set) => ({
+export const useConfigStore = create<ConfigStore>((set, get) => ({
+  // Initial state
+  userConfigsCache: null,
+  projectConfigsCache: {},
   configs: [],
   inheritanceChain: { entries: [], resolved: {} },
-  isLoading: false,
+  isInitialLoading: true,
+  isBackgroundLoading: false,
+  isLoading: true, // Legacy alias - same as isInitialLoading
   error: null,
-  updateConfigs: async () => {
-    const { currentScope } = useUiStore.getState()
-    set({ isLoading: true, error: null })
+
+  // Check if cache is valid
+  isCacheValid: (scope, projectPath) => {
+    const state = get()
+    if (scope === 'user') {
+      if (!state.userConfigsCache) return false
+      return Date.now() - state.userConfigsCache.timestamp < CACHE_VALIDITY_MS
+    }
+    const key = projectPath || 'default'
+    const cache = state.projectConfigsCache[key]
+    if (!cache) return false
+    return Date.now() - cache.timestamp < CACHE_VALIDITY_MS
+  },
+
+  // Get last fetch time
+  getLastFetchTime: (scope, projectPath) => {
+    const state = get()
+    if (scope === 'user') {
+      return state.userConfigsCache?.timestamp ?? null
+    }
+    const key = projectPath || 'default'
+    return state.projectConfigsCache[key]?.timestamp ?? null
+  },
+
+  // Load user configs with caching
+  loadUserConfigs: async () => {
+    const state = get()
+
+    // Return cached data if valid
+    if (state.isCacheValid('user')) {
+      return state.userConfigsCache!.data
+    }
 
     try {
-      let newConfigs: ConfigEntry[]
+      const config = await readAndParseConfig('~/.claude.json')
+      const newConfigs = extractAllEntries(config, 'user')
 
-      if (currentScope === 'project') {
-        // For project scope, merge user and project configurations
-        const userConfig = await readAndParseConfig('~/.claude.json')
-        const projectConfig = await readAndParseConfig('./.mcp.json')
-        newConfigs = mergeConfigs(userConfig, projectConfig)
-      } else if (currentScope === 'user') {
-        // For user scope, only load user configuration
-        const config = await readAndParseConfig('~/.claude.json')
-        newConfigs = extractAllEntries(config, 'user')
-      } else {
-        // For local scope, only load local configuration
-        const config = await readAndParseConfig('./local-config.json')
-        newConfigs = extractAllEntries(config, 'local')
-      }
+      // Update cache
+      set({
+        userConfigsCache: {
+          data: newConfigs,
+          timestamp: Date.now()
+        }
+      })
 
-      set(() => ({
-        configs: newConfigs,
+      return newConfigs
+    } catch (error) {
+      console.error('[configStore] Failed to load user configs:', error)
+      throw error
+    }
+  },
+
+  // Load project configs with caching
+  loadProjectConfigs: async (projectPath) => {
+    const state = get()
+    const cacheKey = projectPath || 'default'
+
+    // Return cached data if valid
+    if (state.isCacheValid('project', projectPath)) {
+      return state.projectConfigsCache[cacheKey].data
+    }
+
+    try {
+      const userConfig = await readAndParseConfig('~/.claude.json')
+      const projectConfig = await readAndParseConfig('./.mcp.json')
+      const newConfigs = mergeConfigs(userConfig, projectConfig)
+
+      // Update cache
+      set((prev) => ({
+        projectConfigsCache: {
+          ...prev.projectConfigsCache,
+          [cacheKey]: {
+            data: newConfigs,
+            timestamp: Date.now()
+          }
+        }
+      }))
+
+      return newConfigs
+    } catch (error) {
+      console.error('[configStore] Failed to load project configs:', error)
+      throw error
+    }
+  },
+
+  // Get configs for scope from cache (synchronous, returns cached or empty)
+  getConfigsForScope: (scope, projectPath) => {
+    const state = get()
+    if (scope === 'user') {
+      return state.userConfigsCache?.data ?? []
+    }
+    const key = projectPath || 'default'
+    return state.projectConfigsCache[key]?.data ?? []
+  },
+
+  // Switch to scope - uses cache first, then background updates if stale
+  switchToScope: async (scope, projectPath) => {
+    const state = get()
+
+    // Check cache first - instant switch if cached
+    const cachedConfigs = state.getConfigsForScope(scope, projectPath)
+    const cacheValid = state.isCacheValid(scope, projectPath)
+
+    if (cachedConfigs.length > 0) {
+      // Instant update from cache
+      set({
+        configs: cachedConfigs,
         inheritanceChain: {
-          entries: newConfigs,
-          resolved: newConfigs.reduce((acc, config) => {
+          entries: cachedConfigs,
+          resolved: cachedConfigs.reduce((acc, config) => {
             acc[config.key] = config.value
             return acc
-          }, {} as Record<string, any>),
+          }, {} as Record<string, any>)
         },
+        isInitialLoading: false,
         isLoading: false,
-      }))
-    } catch (error) {
+        error: null
+      })
+
+      // If cache is stale, revalidate in background (stale-while-revalidate)
+      if (!cacheValid) {
+        set({ isBackgroundLoading: true })
+        try {
+          const freshConfigs = scope === 'user'
+            ? await state.loadUserConfigs()
+            : await state.loadProjectConfigs(projectPath)
+
+          // Only update if still on same scope
+          const currentState = get()
+          if (currentState.configs === cachedConfigs ||
+              JSON.stringify(currentState.configs) === JSON.stringify(cachedConfigs)) {
+            set({
+              configs: freshConfigs,
+              inheritanceChain: {
+                entries: freshConfigs,
+                resolved: freshConfigs.reduce((acc, config) => {
+                  acc[config.key] = config.value
+                  return acc
+                }, {} as Record<string, any>)
+              },
+              isBackgroundLoading: false
+            })
+          }
+        } catch (error) {
+          set({ isBackgroundLoading: false })
+          console.error('[configStore] Background revalidation failed:', error)
+        }
+      }
+    } else {
+      // No cache - need to load
+      set({ isInitialLoading: true, isLoading: true, error: null })
+      try {
+        const newConfigs = scope === 'user'
+          ? await state.loadUserConfigs()
+          : await state.loadProjectConfigs(projectPath)
+
+        set({
+          configs: newConfigs,
+          inheritanceChain: {
+            entries: newConfigs,
+            resolved: newConfigs.reduce((acc, config) => {
+              acc[config.key] = config.value
+              return acc
+            }, {} as Record<string, any>)
+          },
+          isInitialLoading: false,
+          isLoading: false
+        })
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : 'Unknown error',
+          isInitialLoading: false,
+          isLoading: false
+        })
+      }
+    }
+  },
+
+  // Invalidate cache - called when file changes detected
+  invalidateCache: (scope, projectPath) => {
+    if (!scope) {
+      // Invalidate all caches
       set({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false,
+        userConfigsCache: null,
+        projectConfigsCache: {}
+      })
+    } else if (scope === 'user') {
+      set({ userConfigsCache: null })
+    } else {
+      const key = projectPath || 'default'
+      set((prev) => {
+        const newCache = { ...prev.projectConfigsCache }
+        delete newCache[key]
+        return { projectConfigsCache: newCache }
       })
     }
   },
+
+  // Legacy updateConfigs - for backward compatibility with existing code
+  updateConfigs: async () => {
+    const { useUiStore } = await import('./uiStore')
+    const { currentScope } = useUiStore.getState()
+    const state = get()
+
+    // Invalidate cache for current scope to force fresh load
+    state.invalidateCache(currentScope)
+
+    // Load fresh data
+    await state.switchToScope(currentScope)
+  },
+
   updateConfig: (key, value, sourceType) =>
     set((state) => {
       const newConfig: ConfigEntry = {
@@ -73,11 +279,30 @@ export const useConfigStore = create<ConfigStore>((set) => ({
       } else {
         newConfigs.push(newConfig)
       }
-      return { configs: newConfigs }
+
+      // Also invalidate cache since we're modifying
+      return {
+        configs: newConfigs,
+        userConfigsCache: null,
+        projectConfigsCache: {}
+      }
     }),
+
   removeConfig: (path: string) =>
     set((state) => ({
       configs: state.configs.filter((c) => c.source.path !== path),
+      // Invalidate cache when removing
+      userConfigsCache: null,
+      projectConfigsCache: {}
     })),
-  clearConfigs: () => set({ configs: [], inheritanceChain: { entries: [], resolved: {} }, error: null }),
+
+  clearConfigs: () => set({
+    configs: [],
+    inheritanceChain: { entries: [], resolved: {} },
+    error: null,
+    isInitialLoading: false,
+    isLoading: false,
+    userConfigsCache: null,
+    projectConfigsCache: {}
+  }),
 }))

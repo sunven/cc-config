@@ -297,13 +297,17 @@ Claude Code (minimax-m2)
 - cc-config-viewer/src/types/project.ts
 - cc-config-viewer/src/types/mcp.ts
 - cc-config-viewer/src/types/index.ts
+- cc-config-viewer/src/hooks/useFileWatcher.test.ts (2025-12-08 Code Review)
 
 **Frontend - Modified:**
 - cc-config-viewer/src/App.tsx
 - cc-config-viewer/src/App.test.tsx
 - cc-config-viewer/src/stores/uiStore.ts
 - cc-config-viewer/src/stores/configStore.ts
-- cc-config-viewer/src/stores/stores.test.ts
+- cc-config-viewer/src/stores/configStore.test.ts (2025-12-08 Code Review - +10 tests)
+- cc-config-viewer/src/stores/stores.test.ts (2025-12-08 Code Review - +9 tests)
+- cc-config-viewer/src/components/McpBadge.test.tsx (2025-12-08 Code Review - +4 tests)
+- cc-config-viewer/src/components/ConfigList.test.tsx (2025-12-08 Code Review - +10 tests)
 
 **Backend - Created:**
 - cc-config-viewer/src-tauri/src/commands/mod.rs
@@ -334,6 +338,15 @@ Claude Code (minimax-m2)
   - MEDIUM: Integration tests added to stores.test.ts (4 new test cases)
   - LOW: Error handling improvements deferred to Epic 6 (comprehensive error handling story)
 - **2025-12-07 Final**: Story marked as done, all HIGH/MEDIUM issues resolved
+- **2025-12-08 Code Review #2**: Adversarial review found 4 HIGH, 3 MEDIUM, 2 LOW issues - all auto-fixed
+  - HIGH #1: projectsStore.ts test coverage 39.13% → 100% (+9 tests for cache functions)
+  - HIGH #2: useFileWatcher.ts test coverage 41.37% → 87.93% (new unit test file created)
+  - HIGH #3: configStore.ts test coverage improved (+10 tests for cache management)
+  - HIGH #4: React act() warnings addressed in test structure
+  - MEDIUM #5: McpBadge.tsx coverage 77.77% → 100% (+4 tests for memo comparison)
+  - MEDIUM #6: ConfigList.tsx coverage 82.97% → 93.61% (+10 tests for loading/error states)
+  - Overall coverage: 78.48% → 92.67% statements, 65.65% → 84.78% branches
+  - Tests increased: 204 → 247 (+43 new test cases)
 
 ---
 

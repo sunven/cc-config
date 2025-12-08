@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90% </span>
+                <span class="strong">92.3% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/10</span>
+                <span class='fraction'>12/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
@@ -110,7 +110,17 @@
 <a name='L45'></a><a href='#L45'>45</a>
 <a name='L46'></a><a href='#L46'>46</a>
 <a name='L47'></a><a href='#L47'>47</a>
-<a name='L48'></a><a href='#L48'>48</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -122,19 +132,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">27x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -157,7 +170,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { memo } from 'react'
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { memo, useCallback } from 'react'
 import { useUiStore } from '../stores/uiStore'
 import { useConfigStore } from '../stores/configStore'
 import { Badge } from './ui/badge'
@@ -168,22 +188,25 @@ interface ProjectTabProps {
   project?: Project | null
 }
 &nbsp;
-export const ProjectTab: React.FC&lt;ProjectTabProps&gt; = memo(({ scope, project }) =&gt; {
-  const { currentScope, setCurrentScope } = useUiStore()
-  const { updateConfigs } = useConfigStore()
+export const ProjectTab: React.FC&lt;ProjectTabProps&gt; = memo(function ProjectTab({ scope, project }) {
+  // Use selectors for fine-grained subscriptions - prevent re-renders from unrelated state changes
+  const currentScope = useUiStore((state) =&gt; state.currentScope)
+  const setCurrentScope = useUiStore((state) =&gt; state.setCurrentScope)
+  const switchToScope = useConfigStore((state) =&gt; state.switchToScope)
 &nbsp;
   const isActive = currentScope === scope
   const label = scope === 'user' ? '用户级' : (project?.name || <span class="branch-1 cbranch-no" title="branch not covered" >'Project')</span>
 &nbsp;
-  const handleClick = () =&gt; {
+  // Memoize click handler to prevent unnecessary re-renders
+  const handleClick = useCallback(() =&gt; {
     setCurrentScope(scope)
-    // Update configs when switching to this scope
-    updateConfigs()
-  }
+    // Use switchToScope which serves from cache first (instant switch)
+    switchToScope(scope)
+  }, [scope, setCurrentScope, switchToScope])
 &nbsp;
   return (
     &lt;button
-      className={`px-4 py-2 text-sm font-medium rounded-t-lg flex items-center gap-2 ${
+      className={`px-4 py-2 text-sm font-medium rounded-t-lg flex items-center gap-2 transition-colors duration-150 ${
         isActive
           ? 'bg-blue-600 text-white'
           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -203,6 +226,13 @@ export const ProjectTab: React.FC&lt;ProjectTabProps&gt; = memo(({ scope, projec
       )}
     &lt;/button&gt;
   )
+}, (prevProps, nextProps) =&gt; {
+  // Custom comparison - only re-render if props change
+  return (
+    prevProps.scope === nextProps.scope &amp;&amp;
+    prevProps.project?.id === nextProps.project?.id &amp;&amp;
+    prevProps.project?.name === nextProps.project?.name
+  )
 })
 &nbsp;</pre></td></tr></table></pre>
 
@@ -211,7 +241,7 @@ export const ProjectTab: React.FC&lt;ProjectTabProps&gt; = memo(({ scope, projec
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-07T14:30:47.414Z
+                at 2025-12-08T01:37:05.114Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -28,32 +28,48 @@ const mockUseUiStore = useUiStore as unknown as Mock
 const mockUseConfigStore = useConfigStore as unknown as Mock
 
 describe('ProjectTab', () => {
+  const mockSetCurrentScope = vi.fn()
+  const mockSwitchToScope = vi.fn()
+
   beforeEach(() => {
     vi.clearAllMocks()
+
+    // Default mock implementation supporting selector patterns
+    mockUseUiStore.mockImplementation((selector) => {
+      const state = {
+        currentScope: 'user',
+        setCurrentScope: mockSetCurrentScope,
+        isLoading: false,
+        sidebarOpen: true,
+        theme: 'light',
+        setLoading: vi.fn(),
+        setSidebarOpen: vi.fn(),
+        setTheme: vi.fn(),
+        toggleTheme: vi.fn(),
+      }
+      return typeof selector === 'function' ? selector(state) : state
+    })
+
+    mockUseConfigStore.mockImplementation((selector) => {
+      const state = {
+        configs: [],
+        inheritanceChain: { entries: [], resolved: {} },
+        updateConfigs: vi.fn(),
+        updateConfig: vi.fn(),
+        clearConfigs: vi.fn(),
+        switchToScope: mockSwitchToScope,
+      }
+      return typeof selector === 'function' ? selector(state) : state
+    })
   })
 
   it('renders with user scope and correct label', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'project',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
+    mockUseUiStore.mockImplementation((selector) => {
+      const state = {
+        currentScope: 'project',
+        setCurrentScope: mockSetCurrentScope,
+      }
+      return typeof selector === 'function' ? selector(state) : state
     })
 
     render(<ProjectTab scope="user" />)
@@ -64,29 +80,6 @@ describe('ProjectTab', () => {
   })
 
   it('renders with project scope and project name', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'user',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
-    })
-
     render(<ProjectTab scope="project" project={mockProject} />)
 
     expect(screen.getByRole('button')).toBeInTheDocument()
@@ -95,27 +88,12 @@ describe('ProjectTab', () => {
   })
 
   it('applies active styling when current scope matches', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'user',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
+    mockUseUiStore.mockImplementation((selector) => {
+      const state = {
+        currentScope: 'user',
+        setCurrentScope: mockSetCurrentScope,
+      }
+      return typeof selector === 'function' ? selector(state) : state
     })
 
     render(<ProjectTab scope="user" />)
@@ -125,27 +103,12 @@ describe('ProjectTab', () => {
   })
 
   it('applies inactive styling when current scope does not match', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'project',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
+    mockUseUiStore.mockImplementation((selector) => {
+      const state = {
+        currentScope: 'project',
+        setCurrentScope: mockSetCurrentScope,
+      }
+      return typeof selector === 'function' ? selector(state) : state
     })
 
     render(<ProjectTab scope="user" />)
@@ -154,28 +117,13 @@ describe('ProjectTab', () => {
     expect(button).toHaveClass('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300')
   })
 
-  it('calls setCurrentScope and updateConfigs when clicked', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'project',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
+  it('calls setCurrentScope and switchToScope when clicked', () => {
+    mockUseUiStore.mockImplementation((selector) => {
+      const state = {
+        currentScope: 'project',
+        setCurrentScope: mockSetCurrentScope,
+      }
+      return typeof selector === 'function' ? selector(state) : state
     })
 
     render(<ProjectTab scope="user" />)
@@ -184,33 +132,10 @@ describe('ProjectTab', () => {
     fireEvent.click(button)
 
     expect(mockSetCurrentScope).toHaveBeenCalledWith('user')
-    expect(mockUpdateConfigs).toHaveBeenCalledTimes(1)
+    expect(mockSwitchToScope).toHaveBeenCalledWith('user')
   })
 
   it('displays blue badge for user scope', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'user',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
-    })
-
     render(<ProjectTab scope="user" />)
 
     const badge = screen.getByText('User')
@@ -218,27 +143,12 @@ describe('ProjectTab', () => {
   })
 
   it('displays green badge for project scope', () => {
-    const mockSetCurrentScope = vi.fn()
-    const mockUpdateConfigs = vi.fn()
-
-    mockUseUiStore.mockReturnValue({
-      currentScope: 'project',
-      setCurrentScope: mockSetCurrentScope,
-      isLoading: false,
-      sidebarOpen: true,
-      theme: 'light',
-      setLoading: vi.fn(),
-      setSidebarOpen: vi.fn(),
-      setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    })
-
-    mockUseConfigStore.mockReturnValue({
-      configs: [],
-      inheritanceChain: { entries: [], resolved: {} },
-      updateConfigs: mockUpdateConfigs,
-      updateConfig: vi.fn(),
-      clearConfigs: vi.fn(),
+    mockUseUiStore.mockImplementation((selector) => {
+      const state = {
+        currentScope: 'project',
+        setCurrentScope: mockSetCurrentScope,
+      }
+      return typeof selector === 'function' ? selector(state) : state
     })
 
     render(<ProjectTab scope="project" project={mockProject} />)

@@ -183,3 +183,19 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Tab content transition animations for smooth tab switching (Story 2.4) */
+.tab-content-transition {
+  animation: fadeIn 150ms ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
