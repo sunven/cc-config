@@ -70,8 +70,8 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: MCP & Sub Agents Management
-  epic-4: backlog
-  4-1-mcp-servers-display: backlog
+  epic-4: in-progress
+  4-1-mcp-servers-display: review
   4-2-sub-agents-display: backlog
   4-3-unified-capability-panel: backlog
   4-4-capability-details-view: backlog
