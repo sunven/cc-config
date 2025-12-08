@@ -2,8 +2,9 @@ import React, { memo, useMemo } from 'react'
 import equal from 'fast-deep-equal'
 import type { ConfigEntry } from '../types'
 import { Badge } from './ui/badge'
-import { InheritedIndicator } from './InheritedIndicator'
 import { SourceIndicator } from './SourceIndicator'
+import { useConfigStore } from '../stores/configStore'
+import { useUiStore } from '../stores/uiStore'
 
 /**
  * Virtualization threshold - consider implementing react-window if list exceeds this.
@@ -27,11 +28,49 @@ interface ConfigListProps {
 // Memoized config item component for better performance with large lists
 const ConfigItem = memo(function ConfigItem({
   config,
-  formatValue
+  formatValue,
+  inheritanceMap
 }: {
   config: ConfigEntry
   formatValue: (value: any) => string
+  inheritanceMap: Map<string, any>
 }) {
+  const inheritanceData = inheritanceMap.get(config.key)
+
+  // Determine classification and display appropriate labels with inheritance chain
+  const getClassificationBadge = () => {
+    if (!inheritanceData) return null
+
+    switch (inheritanceData.classification) {
+      case 'override':
+        return (
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+              Override
+            </Badge>
+            <span className="text-xs text-gray-500">User → Project</span>
+          </div>
+        )
+      case 'project-specific':
+        return (
+          <Badge variant="outline" className="text-xs bg-green-100 text-green-800 border-green-200">
+            Project Specific
+          </Badge>
+        )
+      case 'inherited':
+        return (
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+              Inherited
+            </Badge>
+            <span className="text-xs text-gray-500">User → Project</span>
+          </div>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <div
       className="flex items-start justify-between p-3 border-b last:border-b-0 hover:bg-gray-50 transition-colors duration-150"
@@ -39,10 +78,8 @@ const ConfigItem = memo(function ConfigItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-sm truncate">{config.key}</span>
-          {config.inherited && config.source.type !== 'inherited' && (
-            <InheritedIndicator source={config.source.type} showTooltip={true} />
-          )}
-          {config.overridden && (
+          {getClassificationBadge()}
+          {config.overridden && !inheritanceData && (
             <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
               Overridden
             </Badge>
@@ -60,12 +97,16 @@ const ConfigItem = memo(function ConfigItem({
 }, (prevProps, nextProps) => {
   // Only re-render if config content changes
   // Use fast-deep-equal for efficient value comparison (Story 3.1 Code Review Fix)
+  const prevInheritance = prevProps.inheritanceMap?.get(prevProps.config.key)
+  const nextInheritance = nextProps.inheritanceMap?.get(nextProps.config.key)
+
   return (
     prevProps.config.key === nextProps.config.key &&
     prevProps.config.source.type === nextProps.config.source.type &&
     equal(prevProps.config.value, nextProps.config.value) &&
     prevProps.config.inherited === nextProps.config.inherited &&
-    prevProps.config.overridden === nextProps.config.overridden
+    prevProps.config.overridden === nextProps.config.overridden &&
+    equal(prevInheritance, nextInheritance)
   )
 })
 
@@ -75,6 +116,9 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
   isLoading,
   error
 }) {
+  // Get inheritance data from store
+  const inheritanceMap = useConfigStore((state) => state.inheritanceMap)
+
   // Log warning if list is large (future optimization opportunity)
   if (process.env.NODE_ENV === 'development' && configs.length > VIRTUALIZATION_THRESHOLD) {
     console.warn(
@@ -125,6 +169,7 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
               key={config.key}
               config={config}
               formatValue={formatValue}
+              inheritanceMap={inheritanceMap}
             />
           ))}
         </div>
@@ -138,6 +183,22 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
   if (prevProps.error !== nextProps.error) return false
   if (prevProps.title !== nextProps.title) return false
   if (prevProps.configs.length !== nextProps.configs.length) return false
+
+  // Compare inheritance maps
+  const prevInheritanceMap = prevProps.inheritanceMap
+  const nextInheritanceMap = nextProps.inheritanceMap
+
+  // If maps have different sizes or one is undefined, re-render
+  if (!prevInheritanceMap || !nextInheritanceMap) return false
+  if (prevInheritanceMap.size !== nextInheritanceMap.size) return false
+
+  // Check if any key's inheritance data changed
+  for (const [key, prevInheritance] of prevInheritanceMap) {
+    const nextInheritance = nextInheritanceMap.get(key)
+    if (!equal(prevInheritance, nextInheritance)) {
+      return false
+    }
+  }
 
   // Use fast-deep-equal for efficient deep comparison
   for (let i = 0; i < prevProps.configs.length; i++) {

@@ -12,11 +12,14 @@ interface UiStore {
   isLoading: boolean
   sidebarOpen: boolean
   theme: 'light' | 'dark'
+  // View mode for inheritance display
+  viewMode: 'merged' | 'split'
   setCurrentScope: (scope: ScopeType) => void
   setLoading: (loading: boolean) => void
   setSidebarOpen: (open: boolean) => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
+  setViewMode: (mode: 'merged' | 'split') => void
 }
 
 export const useUiStore = create<UiStore>()(
@@ -26,12 +29,14 @@ export const useUiStore = create<UiStore>()(
       isLoading: false,
       sidebarOpen: true,
       theme: 'light',
+      viewMode: 'merged',
       setCurrentScope: (scope) => set({ currentScope: scope }),
       setLoading: (loading) => set({ isLoading: loading }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+      setViewMode: (mode) => set({ viewMode: mode }),
     }),
     {
       name: 'cc-config-ui-storage',
@@ -40,6 +45,7 @@ export const useUiStore = create<UiStore>()(
         currentScope: state.currentScope,
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
+        viewMode: state.viewMode,
       }),
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<UiStore> | undefined

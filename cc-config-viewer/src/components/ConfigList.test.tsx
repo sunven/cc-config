@@ -1,8 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ConfigList } from './ConfigList'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { ConfigEntry } from '../types'
+import { useConfigStore } from '../stores/configStore'
+
+// Mock the config store
+vi.mock('../stores/configStore', () => ({
+  useConfigStore: vi.fn(() => ({
+    inheritanceMap: new Map(),
+  })),
+}))
 
 // Wrapper for components that use Tooltip
 const renderWithTooltip = (component: React.ReactNode) => {
@@ -12,6 +20,13 @@ const renderWithTooltip = (component: React.ReactNode) => {
     </TooltipProvider>
   )
 }
+
+// Set up default mock before each test
+beforeEach(() => {
+  vi.mocked(useConfigStore).mockReturnValue({
+    inheritanceMap: new Map(),
+  } as any)
+})
 
 describe('ConfigList', () => {
   const mockConfigs: ConfigEntry[] = [
@@ -68,9 +83,26 @@ describe('ConfigList', () => {
       }
     ]
 
+    // Mock the store with inheritance data
+    const mockInheritanceMap = new Map([
+      ['timeout', {
+        configKey: 'timeout',
+        currentValue: 30,
+        classification: 'inherited' as const,
+        sourceType: 'user' as const,
+        inheritedFrom: '~/.claude.json',
+        isOverridden: false
+      }]
+    ])
+
+    vi.mocked(useConfigStore).mockReturnValue({
+      inheritanceMap: mockInheritanceMap,
+    } as any)
+
     renderWithTooltip(<ConfigList configs={configsWithInherited} />)
 
-    expect(screen.getByText('继承自用户级')).toBeInTheDocument()
+    expect(screen.getByText('Inherited')).toBeInTheDocument()
+    expect(screen.getByText('User → Project')).toBeInTheDocument()
   })
 
   it('renders overridden badge when config is overridden', () => {

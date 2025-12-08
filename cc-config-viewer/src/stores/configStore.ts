@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import type { ConfigEntry, InheritanceChain } from '../types'
+import type { ConfigEntry, InheritanceChain, InheritanceMap, InheritanceResult } from '../types'
 import { readAndParseConfig, extractAllEntries, mergeConfigs } from '../lib/configParser'
+import { calculateInheritance } from '../lib/inheritanceCalculator'
 
 // Cache entry with timestamp for stale-while-revalidate pattern
 interface CacheEntry<T> {
@@ -20,6 +21,10 @@ interface ConfigStore {
   configs: ConfigEntry[]
   inheritanceChain: InheritanceChain
 
+  // New inheritance tracking for Story 3.2
+  inheritanceMap: InheritanceMap
+  viewMode: 'merged' | 'split'
+
   // Loading states - only for initial load, not for cached switches
   isInitialLoading: boolean
   isBackgroundLoading: boolean
@@ -32,6 +37,10 @@ interface ConfigStore {
   getConfigsForScope: (scope: 'user' | 'project', projectPath?: string) => ConfigEntry[]
   switchToScope: (scope: 'user' | 'project', projectPath?: string) => Promise<void>
   invalidateCache: (scope?: 'user' | 'project', projectPath?: string) => void
+
+  // New inheritance actions for Story 3.2
+  updateInheritanceChain: (userConfig: ConfigEntry[], projectConfig: ConfigEntry[]) => void
+  setViewMode: (mode: 'merged' | 'split') => void
 
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
@@ -50,6 +59,8 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   projectConfigsCache: {},
   configs: [],
   inheritanceChain: { entries: [], resolved: {} },
+  inheritanceMap: new Map(),
+  viewMode: 'merged',
   isInitialLoading: true,
   isBackgroundLoading: false,
   isLoading: true, // Legacy alias - same as isInitialLoading
@@ -299,10 +310,63 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   clearConfigs: () => set({
     configs: [],
     inheritanceChain: { entries: [], resolved: {} },
+    inheritanceMap: new Map(),
     error: null,
     isInitialLoading: false,
     isLoading: false,
     userConfigsCache: null,
     projectConfigsCache: {}
   }),
+
+  // New inheritance methods for Story 3.2
+  updateInheritanceChain: (userConfig: ConfigEntry[], projectConfig: ConfigEntry[]) => {
+    // Convert ConfigEntry[] to simple format for calculateInheritance
+    const userItems = userConfig.map(c => ({ key: c.key, value: c.value }))
+    const projectItems = projectConfig.map(c => ({ key: c.key, value: c.value }))
+
+    // Calculate inheritance
+    const result = calculateInheritance(userItems, projectItems)
+
+    // Build inheritance map
+    const inheritanceMap = new Map<string, any>()
+
+    // Add inherited configs
+    result.inherited.forEach(item => {
+      inheritanceMap.set(item.key, {
+        configKey: item.key,
+        currentValue: item.value,
+        classification: 'inherited' as const,
+        sourceType: 'project' as const,
+        inheritedFrom: '~/.claude.json',
+        isOverridden: false
+      })
+    })
+
+    // Add overridden configs
+    result.overridden.forEach(item => {
+      inheritanceMap.set(item.key, {
+        configKey: item.key,
+        currentValue: item.value,
+        classification: 'override' as const,
+        sourceType: 'project' as const,
+        originalValue: item.originalValue,
+        isOverridden: true
+      })
+    })
+
+    // Add project-specific configs
+    result.projectSpecific.forEach(item => {
+      inheritanceMap.set(item.key, {
+        configKey: item.key,
+        currentValue: item.value,
+        classification: 'project-specific' as const,
+        sourceType: 'project' as const,
+        isOverridden: false
+      })
+    })
+
+    set({ inheritanceMap })
+  },
+
+  setViewMode: (mode: 'merged' | 'split') => set({ viewMode: mode }),
 }))
