@@ -23,7 +23,8 @@
       "Skill(/bmad:bmm:workflows:dev-story)",
       "SlashCommand(/bmad:bmm:workflows:dev-story)",
       "Bash(find:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []

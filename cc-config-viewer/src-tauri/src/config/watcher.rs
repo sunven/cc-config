@@ -244,9 +244,15 @@ mod tests {
 
     #[test]
     fn test_windows_path_handling() {
-        // Test with Windows-style path separators
+        // Test cross-platform path handling for .claude/settings.json
+        // Use platform-appropriate path separators
+        #[cfg(windows)]
         let path = PathBuf::from(r"C:\Users\user\.claude\settings.json");
-        assert!(is_config_file(&path));
+
+        #[cfg(not(windows))]
+        let path = PathBuf::from("/Users/user/.claude/settings.json");
+
+        assert!(is_config_file(&path), "Path should be recognized as a config file: {:?}", path);
     }
 
     #[test]

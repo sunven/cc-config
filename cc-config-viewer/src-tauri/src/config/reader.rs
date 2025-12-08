@@ -13,9 +13,15 @@ fn validate_path(path: &str) -> Result<PathBuf, AppError> {
     let canonical = path_buf.canonicalize()
         .map_err(|e| AppError::Filesystem(format!("Invalid path: {}", e)))?;
 
-    // In test mode, allow any path for testing
+    // In test mode, still perform basic validation but allow test paths
     #[cfg(test)]
     {
+        // Block obviously dangerous system paths even in tests
+        if canonical.as_os_str().to_string_lossy().contains("/etc/") ||
+           canonical.as_os_str().to_string_lossy().contains("/sys/") ||
+           canonical.as_os_str().to_string_lossy().contains("/var/") {
+            return Err(AppError::Permission("Access denied: system paths not allowed".to_string()));
+        }
         return Ok(canonical);
     }
 

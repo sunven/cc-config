@@ -81,7 +81,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const endTime = performance.now()
       const startupTime = endTime - startTime
 
-      
+      console.log(`[Performance] Startup time: ${startupTime.toFixed(2)}ms`)
 
       // NFR: Startup time <3 seconds (3000ms)
       expect(startupTime).toBeLessThan(3000)
@@ -95,7 +95,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const header = screen.getByRole('heading', { name: 'cc-config' })
       const headerRenderTime = performance.now() - startTime
 
-      
+      console.log(`[Performance] Header render time: ${headerRenderTime.toFixed(2)}ms`)
 
       expect(header).toBeInTheDocument()
       expect(headerRenderTime).toBeLessThan(500) // Header should render very fast (allow margin for coverage mode)
@@ -112,7 +112,7 @@ describe('Performance Validation Tests (AC#6)', () => {
 
       const tabRenderTime = performance.now() - startTime
 
-      
+      console.log(`[Performance] Tab render time: ${tabRenderTime.toFixed(2)}ms`)
 
       expect(tabRenderTime).toBeLessThan(500) // Tabs should render quickly
     })
@@ -134,7 +134,7 @@ describe('Performance Validation Tests (AC#6)', () => {
 
       const switchTime = endTime - startTime
 
-      
+      console.log(`[Performance] User→Project switch time: ${switchTime.toFixed(2)}ms`)
 
       // NFR: Tab switching <100ms
       expect(switchTime).toBeLessThan(100)
@@ -158,7 +158,7 @@ describe('Performance Validation Tests (AC#6)', () => {
 
       const switchTime = endTime - startTime
 
-      
+      console.log(`[Performance] Project→User switch time: ${switchTime.toFixed(2)}ms`)
 
       // NFR: Tab switching <100ms
       expect(switchTime).toBeLessThan(100)
@@ -185,7 +185,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const endTime = performance.now()
       const totalTime = endTime - startTime
 
-      
+      console.log(`[Performance] 4 rapid tab switches: ${totalTime.toFixed(2)}ms`)
 
       // Each switch should be <100ms, so 4 switches < 400ms with margin
       expect(totalTime).toBeLessThan(500)
@@ -216,7 +216,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const endTime = performance.now()
       const detectionTime = endTime - startTime
 
-      
+      console.log(`[Performance] File change detection: ${detectionTime.toFixed(2)}ms`)
 
       // NFR: File change detection <500ms
       expect(detectionTime).toBeLessThan(500)
@@ -243,7 +243,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const endTime = performance.now()
       const totalTime = endTime - startTime
 
-      
+      console.log(`[Performance] 3 file changes: ${totalTime.toFixed(2)}ms`)
 
       // Should handle multiple changes efficiently
       expect(totalTime).toBeLessThan(1000)
@@ -259,7 +259,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const endTime = performance.now()
       const renderTime = endTime - startTime
 
-      
+      console.log(`[Performance] Initial render: ${renderTime.toFixed(2)}ms`)
 
       // NFR: Initial render <50ms
       // Note: This might be slightly higher in test environment due to setup overhead
@@ -278,7 +278,7 @@ describe('Performance Validation Tests (AC#6)', () => {
       const endTime = performance.now()
       const structureRenderTime = endTime - startTime
 
-      
+      console.log(`[Performance] Structure render: ${structureRenderTime.toFixed(2)}ms`)
 
       expect(header).toBeInTheDocument()
       expect(userTab).toBeInTheDocument()
@@ -354,11 +354,11 @@ describe('Performance Summary Report', () => {
     })
 
     // Log summary
-    
-    
-    
-    
-    
+    console.log('\n=== Performance Summary ===')
+    console.log(`Startup:      ${metrics.startup.toFixed(2)}ms (target: <3000ms) ${metrics.startup < 3000 ? '✓' : '✗'}`)
+    console.log(`Tab Switch:   ${metrics.tabSwitch.toFixed(2)}ms (target: <100ms) ${metrics.tabSwitch < 100 ? '✓' : '✗'}`)
+    console.log(`File Change:  ${metrics.fileChange.toFixed(2)}ms (target: <500ms) ${metrics.fileChange < 500 ? '✓' : '✗'}`)
+    console.log('===========================\n')
 
     // All metrics should pass
     expect(metrics.startup).toBeLessThan(3000)

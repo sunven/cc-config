@@ -68,36 +68,22 @@ export function useFileWatcher() {
       // Invalidate appropriate caches
       if (invalidateUser) {
         invalidateCache('user')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useFileWatcher] User config cache invalidated')
-        }
       }
       if (invalidateProject) {
         invalidateCache('project')
         invalidateProjectCache()
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useFileWatcher] Project config cache invalidated')
-        }
       }
 
       // Trigger reload for current scope (will use cache-first pattern)
       const { useUiStore } = await import('@/stores/uiStore')
       const { currentScope } = useUiStore.getState()
       await switchToScope(currentScope)
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[useFileWatcher] Processed ${changes.length} file changes, reloaded ${currentScope} scope`)
-      }
     }
 
     // Set up event listener
     const setupListener = async () => {
       unlisten = await listen<ConfigChangedEvent>('config-changed', (event) => {
         const { path, changeType } = event.payload
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[useFileWatcher] Config change detected: ${changeType} - ${path}`)
-        }
 
         // Accumulate changes
         pendingChangesRef.current.push({ path, changeType })
@@ -111,10 +97,6 @@ export function useFileWatcher() {
           processChanges()
         }, DEBOUNCE_MS)
       })
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useFileWatcher] File watcher listener initialized with debouncing')
-      }
     }
 
     setupListener()
@@ -126,9 +108,6 @@ export function useFileWatcher() {
       }
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
-      }
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[useFileWatcher] File watcher listener cleaned up')
       }
     }
   }, [invalidateCache, switchToScope, removeConfig, invalidateProjectCache])

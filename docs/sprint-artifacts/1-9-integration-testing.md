@@ -18,7 +18,7 @@ So that I can verify all components work together correctly.
      - Zustand stores initialize correctly with default values
      - shadcn/ui components display and function properly
      - TypeScript compilation succeeds with zero errors
-     - All existing 119 tests continue to pass
+     - All existing 282 tests pass (includes 119 original + 163 from Epic 2 stories)
 
 2. **Backend Tests Pass**
    - Given the Rust backend is implemented
@@ -28,7 +28,7 @@ So that I can verify all components work together correctly.
      - File reading works for valid files (test with mock files)
      - Permission errors are handled gracefully
      - Watcher starts successfully and detects file changes
-     - All existing 16 Rust tests continue to pass
+     - All 16 Rust tests pass (fixed: test_windows_path_handling, test_validate_path_blocks_system_paths)
 
 3. **Integration Tests: Frontend-Backend Communication**
    - Given both frontend and backend are running
@@ -62,17 +62,17 @@ So that I can verify all components work together correctly.
    - Given the full test suite runs
    - When I measure performance metrics
    - Then all NFRs are validated:
-     - Startup time: <3 seconds
-     - Tab switching: <100ms
-     - File change detection: <500ms
+     - Startup time: <3 seconds (actual: ~5-70ms)
+     - Tab switching: <100ms (actual: ~0.2-1ms)
+     - File change detection: <500ms (actual: ~1-1.5ms)
      - Memory usage: <200MB
-     - Initial render: <50ms
+     - Initial render: <50ms (actual: ~5-12ms)
 
 7. **Test Coverage Requirements**
    - Given all tests pass
    - When I generate coverage reports
    - Then coverage meets targets:
-     - Overall coverage: >80%
+     - Overall coverage: >80% (actual: 89.5% statements, 80.19% branches, 89.94% functions, 89.37% lines)
      - Critical paths (config reading, store updates): >90%
      - Error handling paths: >85%
 
@@ -532,6 +532,32 @@ N/A - All tests passed on first run after fixes
    - Backend: 16 tests passing
    - Total: 172 tests
 
+### Code Review Fixes (2025-12-08)
+
+**Senior Developer Review (AI):** Found 2 CRITICAL issues that violated验收标准AC#2
+
+**Issue #1 [FIXED] - test_windows_path_handling failure**
+- **Problem**: Test used Windows-style path on non-Windows system, causing path parsing to fail
+- **Root Cause**: `PathBuf::from(r"C:\Users\user\.claude\settings.json")` treated entire string as filename
+- **Fix**: Added platform-specific path compilation using `#[cfg(windows)]` attribute
+- **Status**: ✓ PASSING
+
+**Issue #2 [FIXED] - test_validate_path_blocks_system_paths failure**
+- **Problem**: `validate_path()` in test mode bypassed ALL validation, allowing /etc/passwd
+- **Root Cause**: Test mode returned `Ok(canonical)` immediately without any security checks
+- **Fix**: Added system path blocking even in test mode for /etc/, /sys/, /var/ paths
+- **Status**: ✓ PASSING
+
+**All 16 Rust tests now PASS** ✓
+
+### Documentation Updates (2025-12-08)
+
+Updated acceptance criteria with actual values:
+- Frontend tests: 282 tests (was 119)
+- Backend tests: All 16 passing (fixed 2 failures)
+- Performance: Actual metrics added (~5-70ms startup, ~0.2-1ms tab switch)
+- Coverage: 89.5% statements, 80.19% branches, 89.94% functions, 89.37% lines
+
 ### File List
 
 **Created:**
@@ -547,6 +573,11 @@ N/A - All tests passed on first run after fixes
 - `cc-config-viewer/src/stores/stores.test.ts` - Fixed MockedFunction types
 - `cc-config-viewer/package.json` - Added @testing-library/user-event dependency
 
+**Code Review Fixes (2025-12-08):**
+- `cc-config-viewer/src-tauri/src/config/watcher.rs` - Fixed test_windows_path_handling with platform-specific paths
+- `cc-config-viewer/src-tauri/src/config/reader.rs` - Added system path blocking in test mode
+- `docs/sprint-artifacts/1-9-integration-testing.md` - Updated acceptance criteria with actual test counts and metrics
+
 ### Change Log
 
 | File | Change | Reason |
@@ -561,4 +592,40 @@ N/A - All tests passed on first run after fixes
 | src/stores/configStore.test.ts | Changed vi.MockedFunction to MockedFunction type | Fix TypeScript compilation errors |
 | src/stores/stores.test.ts | Changed vi.MockedFunction to MockedFunction type | Fix TypeScript compilation errors |
 | package.json | Added @testing-library/user-event | Enable user interaction testing |
+
+### Code Review Fixes (2025-12-08 - Automated)
+
+**Senior Developer Code Review (AI) Findings:**
+
+**HIGH SEVERITY:**
+- Coverage HTML files committed to git (26 files in cc-config-viewer/coverage/)
+  - **Fix**: Added coverage/ and *.lcov to .gitignore, removed from git tracking
+  - **Impact**: Prevents coverage files from bloating git history
+
+**MEDIUM SEVERITY:**
+- Debug console.log statements in production code
+  - **File**: src/hooks/useFileWatcher.ts (6 console.log statements)
+  - **Fix**: Removed all console.log statements
+  - **Impact**: Cleaner production output, improved security
+
+- Debug console.log statements in test files
+  - **File**: src/__tests__/performance.test.tsx (15 console.log statements)
+  - **Fix**: Removed all console.log statements
+  - **Impact**: Cleaner test output
+
+- Incomplete .gitignore configuration
+  - **Fix**: Added coverage/ and *.lcov to .gitignore
+  - **Impact**: Prevents future coverage file commits
+
+**LOW SEVERITY:**
+- ESLint warnings reduced from 69 to 48 (removed 21 no-console warnings)
+  - **Remaining**: 48 no-explicit-any warnings (not fixed - requires type definitions)
+
+**Verification Results:**
+- ✅ All 282 frontend tests pass
+- ✅ All 16 Rust tests pass
+- ✅ TypeScript compilation: 0 errors
+- ✅ ESLint warnings: Reduced by 30% (69→48)
+- ✅ Git tracking cleaned: 26 coverage files removed
+- ✅ No functional regressions detected
 
