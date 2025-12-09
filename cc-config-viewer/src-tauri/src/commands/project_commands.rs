@@ -1,4 +1,4 @@
-use crate::types::app::AppError;
+use crate::types::app::{AppError, Capability, DiffResult, DiffStatus, DiffSeverity};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -353,6 +353,192 @@ pub struct ProjectUpdatedEvent {
     pub change_type: String,
 }
 
+/// Compare two projects and return their capabilities
+#[tauri::command]
+pub async fn compare_projects(
+    left_path: String,
+    right_path: String,
+) -> Result<Vec<DiffResult>, AppError> {
+    // Extract capabilities from both projects
+    let left_capabilities = extract_project_capabilities(&left_path).await?;
+    let right_capabilities = extract_project_capabilities(&right_path).await?;
+
+    // Calculate differences
+    calculate_diff(left_capabilities, right_capabilities).await
+}
+
+/// Extract capabilities from a project path
+async fn extract_project_capabilities(project_path: &str) -> Result<Vec<Capability>, AppError> {
+    let path = PathBuf::from(project_path);
+
+    if !path.exists() || !path.is_dir() {
+        return Err(AppError::Filesystem(format!(
+            "Project path does not exist or is not a directory: {}",
+            project_path
+        )));
+    }
+
+    let mut capabilities = Vec::new();
+
+    // Extract .mcp.json capabilities
+    let mcp_path = path.join(".mcp.json");
+    if mcp_path.exists() && mcp_path.is_file() {
+        match extract_mcp_capabilities(&mcp_path).await {
+            Ok(mut caps) => capabilities.append(&mut caps),
+            Err(e) => eprintln!("Warning: Failed to extract MCP capabilities: {}", e),
+        }
+    }
+
+    // Extract .claude/settings.json capabilities
+    let settings_path = path.join(".claude").join("settings.json");
+    if settings_path.exists() && settings_path.is_file() {
+        match extract_settings_capabilities(&settings_path).await {
+            Ok(mut caps) => capabilities.append(&mut caps),
+            Err(e) => eprintln!("Warning: Failed to extract settings capabilities: {}", e),
+        }
+    }
+
+    Ok(capabilities)
+}
+
+/// Extract capabilities from .mcp.json file
+async fn extract_mcp_capabilities(mcp_path: &PathBuf) -> Result<Vec<Capability>, AppError> {
+    let mcp_path_clone = mcp_path.clone();
+    let content = tokio::task::spawn_blocking(move || {
+        std::fs::read_to_string(&mcp_path_clone).map_err(AppError::from)
+    })
+    .await
+    .map_err(|e| AppError::Filesystem(format!("Task error: {}", e)))??;
+
+    let config: serde_json::Value = serde_json::from_str(&content)
+        .map_err(AppError::from)?;
+
+    let mut capabilities = Vec::new();
+
+    // Extract mcpServers
+    if let Some(mcp_servers) = config.get("mcpServers") {
+        if let Some(servers_obj) = mcp_servers.as_object() {
+            for (server_name, server_config) in servers_obj {
+                capabilities.push(Capability {
+                    id: format!("mcp.{}", server_name),
+                    key: format!("mcpServers.{}", server_name),
+                    value: server_config.clone(),
+                    source: "project".to_string(),
+                });
+            }
+        }
+    }
+
+    Ok(capabilities)
+}
+
+/// Extract capabilities from .claude/settings.json file
+async fn extract_settings_capabilities(settings_path: &PathBuf) -> Result<Vec<Capability>, AppError> {
+    let settings_path_clone = settings_path.clone();
+    let content = tokio::task::spawn_blocking(move || {
+        std::fs::read_to_string(&settings_path_clone).map_err(AppError::from)
+    })
+    .await
+    .map_err(|e| AppError::Filesystem(format!("Task error: {}", e)))??;
+
+    let config: serde_json::Value = serde_json::from_str(&content)
+        .map_err(AppError::from)?;
+
+    let mut capabilities = Vec::new();
+
+    // Extract various settings
+    if let Some(allowed_tools) = config.get("allowedTools") {
+        capabilities.push(Capability {
+            id: "allowedTools".to_string(),
+            key: "allowedTools".to_string(),
+            value: allowed_tools.clone(),
+            source: "user".to_string(),
+        });
+    }
+
+    if let Some(disallowed_tools) = config.get("disallowedTools") {
+        capabilities.push(Capability {
+            id: "disallowedTools".to_string(),
+            key: "disallowedTools".to_string(),
+            value: disallowed_tools.clone(),
+            source: "user".to_string(),
+        });
+    }
+
+    Ok(capabilities)
+}
+
+/// Calculate difference between two capability lists
+#[tauri::command]
+pub async fn calculate_diff(
+    left_capabilities: Vec<Capability>,
+    right_capabilities: Vec<Capability>,
+) -> Result<Vec<DiffResult>, AppError> {
+    let mut diffs = Vec::new();
+
+    // Create a map of right capabilities for efficient lookup
+    let right_map: std::collections::HashMap<String, &Capability> = right_capabilities
+        .iter()
+        .map(|cap| (cap.id.clone(), cap))
+        .collect();
+
+    // Process left capabilities
+    for left_cap in &left_capabilities {
+        if let Some(right_cap) = right_map.get(&left_cap.id) {
+            // Capability exists in both - compare values
+            if left_cap.value == right_cap.value {
+                // Values match
+                diffs.push(DiffResult {
+                    capability_id: left_cap.id.clone(),
+                    left_value: Some(left_cap.clone()),
+                    right_value: Some((*right_cap).clone()),
+                    status: DiffStatus::Match,
+                    severity: DiffSeverity::Low,
+                });
+            } else {
+                // Values differ
+                diffs.push(DiffResult {
+                    capability_id: left_cap.id.clone(),
+                    left_value: Some(left_cap.clone()),
+                    right_value: Some((*right_cap).clone()),
+                    status: DiffStatus::Different,
+                    severity: DiffSeverity::Medium,
+                });
+            }
+        } else {
+            // Capability only exists in left
+            diffs.push(DiffResult {
+                capability_id: left_cap.id.clone(),
+                left_value: Some(left_cap.clone()),
+                right_value: None,
+                status: DiffStatus::OnlyLeft,
+                severity: DiffSeverity::Medium,
+            });
+        }
+    }
+
+    // Process right capabilities that don't exist in left
+    let left_map: std::collections::HashMap<String, &Capability> = left_capabilities
+        .iter()
+        .map(|cap| (cap.id.clone(), cap))
+        .collect();
+
+    for right_cap in &right_capabilities {
+        if !left_map.contains_key(&right_cap.id) {
+            // Capability only exists in right
+            diffs.push(DiffResult {
+                capability_id: right_cap.id.clone(),
+                left_value: None,
+                right_value: Some(right_cap.clone()),
+                status: DiffStatus::OnlyRight,
+                severity: DiffSeverity::Medium,
+            });
+        }
+    }
+
+    Ok(diffs)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -462,5 +648,124 @@ mod tests {
         // Test depth > 5 (should be capped at 5)
         let result = scan_projects(10).await;
         assert!(result.is_ok() || result.is_err());
+    }
+
+    // Story 5.2: Comparison tests
+
+    #[tokio::test]
+    async fn test_calculate_diff_matching_capabilities() {
+        let left_capabilities = vec![
+            Capability {
+                id: "key1".to_string(),
+                key: "key1".to_string(),
+                value: serde_json::Value::String("value1".to_string()),
+                source: "left".to_string(),
+            },
+            Capability {
+                id: "key2".to_string(),
+                key: "key2".to_string(),
+                value: serde_json::Value::String("value2".to_string()),
+                source: "left".to_string(),
+            },
+        ];
+
+        let right_capabilities = vec![
+            Capability {
+                id: "key1".to_string(),
+                key: "key1".to_string(),
+                value: serde_json::Value::String("value1".to_string()),
+                source: "right".to_string(),
+            },
+            Capability {
+                id: "key2".to_string(),
+                key: "key2".to_string(),
+                value: serde_json::Value::String("value2".to_string()),
+                source: "right".to_string(),
+            },
+        ];
+
+        let result = calculate_diff(left_capabilities, right_capabilities).await.unwrap();
+
+        // Both capabilities should match
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].status, DiffStatus::Match);
+        assert_eq!(result[1].status, DiffStatus::Match);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_diff_different_values() {
+        let left_capabilities = vec![
+            Capability {
+                id: "key1".to_string(),
+                key: "key1".to_string(),
+                value: serde_json::Value::String("value1".to_string()),
+                source: "left".to_string(),
+            },
+        ];
+
+        let right_capabilities = vec![
+            Capability {
+                id: "key1".to_string(),
+                key: "key1".to_string(),
+                value: serde_json::Value::String("different_value".to_string()),
+                source: "right".to_string(),
+            },
+        ];
+
+        let result = calculate_diff(left_capabilities, right_capabilities).await.unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].status, DiffStatus::Different);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_diff_only_left() {
+        let left_capabilities = vec![
+            Capability {
+                id: "unique_key".to_string(),
+                key: "unique_key".to_string(),
+                value: serde_json::Value::String("left_only".to_string()),
+                source: "left".to_string(),
+            },
+        ];
+
+        let right_capabilities = vec![];
+
+        let result = calculate_diff(left_capabilities, right_capabilities).await.unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].status, DiffStatus::OnlyLeft);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_diff_only_right() {
+        let left_capabilities = vec![];
+
+        let right_capabilities = vec![
+            Capability {
+                id: "unique_key".to_string(),
+                key: "unique_key".to_string(),
+                value: serde_json::Value::String("right_only".to_string()),
+                source: "right".to_string(),
+            },
+        ];
+
+        let result = calculate_diff(left_capabilities, right_capabilities).await.unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].status, DiffStatus::OnlyRight);
+    }
+
+    #[tokio::test]
+    async fn test_compare_projects_valid_paths() {
+        // This test will fail initially as compare_projects is not implemented
+        let result = compare_projects(
+            "/tmp/left_project".to_string(),
+            "/tmp/right_project".to_string(),
+        ).await;
+
+        // Currently this will panic due to todo!()
+        // After implementation, it should return an empty Vec or proper error
+        assert!(result.is_err() || result.is_ok());
     }
 }

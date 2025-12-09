@@ -412,6 +412,101 @@ describe('Zustand Stores', () => {
         expect(parsed['test-1']).toBeDefined()
       })
     })
+
+    // Story 5.2 - Comparison store tests
+    describe('ProjectsStore - Comparison (Story 5.2)', () => {
+      beforeEach(() => {
+        useProjectsStore.setState({
+          projects: [],
+          activeProject: null,
+          projectConfigsCache: {},
+          isLoadingProjects: false,
+          projectsError: null,
+          sortOrder: 'recency',
+          comparison: {
+            leftProject: null,
+            rightProject: null,
+            isComparing: false,
+            diffResults: [],
+            comparisonMode: 'capabilities',
+          },
+        })
+      })
+
+      it('has comparison state initialized correctly', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        expect(result.current.comparison.leftProject).toBeNull()
+        expect(result.current.comparison.rightProject).toBeNull()
+        expect(result.current.comparison.isComparing).toBe(false)
+        expect(result.current.comparison.diffResults).toEqual([])
+        expect(result.current.comparison.comparisonMode).toBe('capabilities')
+      })
+
+      it('setComparisonProjects updates comparison state', () => {
+        const { result } = renderHook(() => useProjectsStore())
+        const leftProject = {
+          id: 'left-1',
+          name: 'Left Project',
+          path: '/left',
+          configFileCount: 1,
+          lastModified: new Date(),
+          configSources: { user: false, project: true, local: false },
+        }
+        const rightProject = {
+          id: 'right-1',
+          name: 'Right Project',
+          path: '/right',
+          configFileCount: 1,
+          lastModified: new Date(),
+          configSources: { user: false, project: true, local: false },
+        }
+
+        act(() => {
+          result.current.setComparisonProjects(leftProject, rightProject)
+        })
+
+        expect(result.current.comparison.leftProject).toEqual(leftProject)
+        expect(result.current.comparison.rightProject).toEqual(rightProject)
+        expect(result.current.comparison.isComparing).toBe(true)
+        expect(result.current.comparison.diffResults).toEqual([])
+      })
+
+      it('clearComparison resets comparison state', () => {
+        useProjectsStore.setState({
+          comparison: {
+            leftProject: { id: 'left' } as any,
+            rightProject: { id: 'right' } as any,
+            isComparing: true,
+            diffResults: [{ capabilityId: 'test', status: 'match', severity: 'low' }],
+            comparisonMode: 'capabilities',
+          },
+        })
+
+        const { result } = renderHook(() => useProjectsStore())
+
+        act(() => {
+          result.current.clearComparison()
+        })
+
+        expect(result.current.comparison.leftProject).toBeNull()
+        expect(result.current.comparison.rightProject).toBeNull()
+        expect(result.current.comparison.isComparing).toBe(false)
+        expect(result.current.comparison.diffResults).toEqual([])
+        expect(result.current.comparison.comparisonMode).toBe('capabilities')
+      })
+
+      it('calculateDiff handles missing projects gracefully', async () => {
+        const { result } = renderHook(() => useProjectsStore())
+
+        // Don't set any projects
+        await act(async () => {
+          await result.current.calculateDiff()
+        })
+
+        // Should not crash, just log warning
+        expect(result.current.comparison.diffResults).toEqual([])
+      })
+    })
   })
 
   describe('UiStore', () => {

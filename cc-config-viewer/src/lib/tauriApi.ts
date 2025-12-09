@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { AppError } from '../types'
+import type { DiffResult } from '../types/comparison'
 
 // Rust AppError is serialized as { Filesystem: "msg" } | { Permission: "msg" } | { Parse: "msg" }
 interface RustAppError {
@@ -113,6 +114,26 @@ export async function scanProjects(depth: number = 3): Promise<DiscoveredProject
 export async function watchProjects(): Promise<void> {
   try {
     await invoke('watch_projects')
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+// Project comparison commands (Story 5.2)
+export async function compareProjects(leftPath: string, rightPath: string): Promise<DiffResult[]> {
+  try {
+    return await invoke<DiffResult[]>('compare_projects', { leftPath, rightPath })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function calculateDiff(
+  leftCapabilities: any[],
+  rightCapabilities: any[]
+): Promise<DiffResult[]> {
+  try {
+    return await invoke<DiffResult[]>('calculate_diff', { leftCapabilities, rightCapabilities })
   } catch (error) {
     throw convertRustError(error)
   }

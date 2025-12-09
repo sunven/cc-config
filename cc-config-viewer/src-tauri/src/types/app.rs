@@ -66,3 +66,52 @@ pub struct ConfigEntry {
     pub value: serde_json::Value,
     pub source: ConfigSource,
 }
+
+/// Represents a configuration capability for comparison
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct Capability {
+    pub id: String,
+    pub key: String,
+    pub value: serde_json::Value,
+    pub source: String,
+}
+
+/// Represents the result of a capability comparison
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct DiffResult {
+    pub capability_id: String,
+    pub left_value: Option<Capability>,
+    pub right_value: Option<Capability>,
+    pub status: DiffStatus,
+    pub severity: DiffSeverity,
+}
+
+/// Status of a capability comparison
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum DiffStatus {
+    #[serde(rename = "match")]
+    Match,
+    #[serde(rename = "different")]
+    Different,
+    #[serde(rename = "conflict")]
+    Conflict,
+    #[serde(rename = "only-left")]
+    OnlyLeft,
+    #[serde(rename = "only-right")]
+    OnlyRight,
+}
+
+/// Severity level of a difference
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum DiffSeverity {
+    #[serde(rename = "low")]
+    Low,
+    #[serde(rename = "medium")]
+    Medium,
+    #[serde(rename = "high")]
+    High,
+}

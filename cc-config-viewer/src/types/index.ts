@@ -3,6 +3,7 @@ export * from './config'
 export * from './mcp'
 export * from './agent'
 export * from './capability'
+export * from './comparison'
 
 export interface AppError {
   type: 'filesystem' | 'permission' | 'parse' | 'network'

@@ -81,7 +81,7 @@ development_status:
   # Epic 5: Cross-Project Configuration Comparison
   epic-5: in-progress
   5-1-project-discovery-and-listing: review
-  5-2-side-by-side-comparison-view: backlog
+  5-2-side-by-side-comparison-view: review
   5-3-difference-highlighting: backlog
   5-4-project-health-dashboard: backlog
   5-5-configuration-export: backlog

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import type { Project, ProjectSummary } from '../types/project'
+import type { Project, ProjectSummary, DiscoveredProject } from '../types/project'
 import type { ConfigEntry } from '../types'
+import type { ComparisonView, DiffResult } from '../types/comparison'
 import { discoverProjects } from '../lib/projectDetection'
 
 // Cache entry with timestamp
@@ -27,6 +28,15 @@ interface ProjectsStore {
   projectsError: string | null
   sortOrder: 'recency' | 'name'
 
+  // Story 5.2 - Comparison state
+  comparison: {
+    leftProject: DiscoveredProject | null
+    rightProject: DiscoveredProject | null
+    isComparing: boolean
+    diffResults: DiffResult[]
+    comparisonMode: 'capabilities' | 'settings' | 'all'
+  }
+
   // Actions
   setActiveProject: (project: Project | null) => void
   addProject: (project: Project) => void
@@ -43,6 +53,11 @@ interface ProjectsStore {
   updateProjectLastAccessed: (projectId: string) => void
   setSortOrder: (order: 'recency' | 'name') => void
   getProjectSummary: (projectId: string) => ProjectSummary | null
+
+  // Story 5.2 - Comparison actions
+  setComparisonProjects: (left: DiscoveredProject, right: DiscoveredProject) => void
+  calculateDiff: () => Promise<void>
+  clearComparison: () => void
 }
 
 // Load persisted lastAccessed timestamps from localStorage
@@ -75,6 +90,15 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => ({
   isLoadingProjects: false,
   projectsError: null,
   sortOrder: 'recency',
+
+  // Story 5.2 - Comparison state
+  comparison: {
+    leftProject: null,
+    rightProject: null,
+    isComparing: false,
+    diffResults: [],
+    comparisonMode: 'capabilities',
+  },
 
   setActiveProject: (project) => set({ activeProject: project }),
 
@@ -191,6 +215,62 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => ({
       lastAccessed: project.lastAccessed ?? null,
     }
   },
+
+  // Story 5.2 - Comparison actions
+  setComparisonProjects: (left, right) =>
+    set((state) => ({
+      comparison: {
+        ...state.comparison,
+        leftProject: left,
+        rightProject: right,
+        isComparing: true,
+        diffResults: [],
+      },
+    })),
+
+  calculateDiff: async () => {
+    const { leftProject, rightProject } = get().comparison
+
+    if (!leftProject || !rightProject) {
+      console.warn('Cannot calculate diff: missing projects')
+      return
+    }
+
+    try {
+      // Call Rust backend to compare projects
+      const { invoke } = await import('@tauri-apps/api/core')
+      const diffResults = await invoke('compare_projects', {
+        leftPath: leftProject.path,
+        rightPath: rightProject.path,
+      }) as DiffResult[]
+
+      set((state) => ({
+        comparison: {
+          ...state.comparison,
+          diffResults,
+        },
+      }))
+    } catch (error) {
+      console.error('Failed to calculate diff:', error)
+      set((state) => ({
+        comparison: {
+          ...state.comparison,
+          diffResults: [],
+        },
+      }))
+    }
+  },
+
+  clearComparison: () =>
+    set((state) => ({
+      comparison: {
+        leftProject: null,
+        rightProject: null,
+        isComparing: false,
+        diffResults: [],
+        comparisonMode: 'capabilities',
+      },
+    })),
 }))
 
 // Helper function to sort projects
