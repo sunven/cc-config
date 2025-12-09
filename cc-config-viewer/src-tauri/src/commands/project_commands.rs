@@ -1,5 +1,6 @@
 use crate::types::app::{
     AppError, Capability, DiffResult, DiffStatus, DiffSeverity, HighlightFilters, SummaryStats,
+    HealthStatus, HealthIssue, HealthMetrics, ProjectHealth,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -625,6 +626,119 @@ pub async fn filter_capabilities(
     Ok(filtered)
 }
 
+/// Check the health of a single project
+#[tauri::command]
+pub async fn health_check_project(
+    project_path: String,
+) -> Result<ProjectHealth, AppError> {
+    use crate::types::app::{
+        HealthIssue, HealthMetrics, HealthStatus, ProjectHealth,
+    };
+
+    let path = Path::new(&project_path);
+
+    // Check if project directory exists
+    if !path.exists() {
+        return Err(AppError::Filesystem(
+            format!("Project path does not exist: {}", project_path)
+        ));
+    }
+
+    // Calculate basic metrics
+    let config_count = count_config_files(path);
+    let mut invalid_configs = 0;
+    let mut warnings = 0;
+    let mut errors = 0;
+    let mut issues = Vec::new();
+
+    // TODO: In full implementation, validate config files and detect issues
+    // For now, create basic health based on config count
+
+    // Determine health status based on config count
+    let (status, score) = if config_count == 0 {
+        (
+            HealthStatus::Error,
+            0.0,
+        )
+    } else if config_count < 2 {
+        (
+            HealthStatus::Warning,
+            50.0 + (config_count as f64 * 10.0),
+        )
+    } else {
+        (
+            HealthStatus::Good,
+            80.0 + (config_count as f64 * 2.0),
+        )
+    };
+
+    // If error status, add an issue
+    if matches!(status, HealthStatus::Error) {
+        issues.push(HealthIssue {
+            id: "no-configs".to_string(),
+            type_: "error".to_string(),
+            severity: DiffSeverity::High,
+            message: "No configuration files found".to_string(),
+            details: Some("Project should have at least one configuration file".to_string()),
+            project_id: generate_project_id(path),
+        });
+        errors += 1;
+    }
+
+    let metrics = HealthMetrics {
+        total_capabilities: config_count as u32,
+        valid_configs: config_count as u32,
+        invalid_configs,
+        warnings,
+        errors,
+        last_checked: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string(),
+        last_accessed: None,
+    };
+
+    Ok(ProjectHealth {
+        project_id: generate_project_id(path),
+        status,
+        score,
+        metrics,
+        issues,
+        recommendations: vec![
+            "Review project configuration files".to_string(),
+            "Ensure all required configs are present".to_string(),
+        ],
+    })
+}
+
+/// Calculate health metrics for multiple projects
+#[tauri::command]
+pub async fn calculate_health_metrics(
+    projects: Vec<DiscoveredProject>,
+) -> Result<Vec<ProjectHealth>, AppError> {
+    use crate::types::app::ProjectHealth;
+
+    let mut health_results = Vec::new();
+
+    for project in projects {
+        let health = health_check_project(project.path.clone()).await?;
+        health_results.push(health);
+    }
+
+    Ok(health_results)
+}
+
+/// Refresh health status for all projects
+#[tauri::command]
+pub async fn refresh_all_project_health(
+    projects: Vec<DiscoveredProject>,
+) -> Result<Vec<ProjectHealth>, AppError> {
+    // This is essentially the same as calculate_health_metrics
+    // but with a semantic name indicating a refresh operation
+    calculate_health_metrics(projects).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1107,5 +1221,161 @@ mod tests {
 
         // Should return capabilities (actual filtering at diff level in full implementation)
         assert_eq!(result.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_project_success() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir = temp_dir.path();
+
+        // Create a config file
+        std::fs::write(dir.join(".mcp.json"), "{}").unwrap();
+
+        let health = health_check_project(dir.to_string_lossy().to_string()).await.unwrap();
+
+        assert_eq!(health.project_id.len(), 16);
+        assert!(matches!(health.status, HealthStatus::Good | HealthStatus::Warning));
+        assert!(health.score >= 0.0 && health.score <= 100.0);
+        assert_eq!(health.metrics.total_capabilities, 1);
+        assert_eq!(health.metrics.valid_configs, 1);
+        assert!(!health.recommendations.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_health_check_project_error_no_configs() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir = temp_dir.path();
+
+        let health = health_check_project(dir.to_string_lossy().to_string()).await.unwrap();
+
+        assert_eq!(health.project_id.len(), 16);
+        assert!(matches!(health.status, HealthStatus::Error));
+        assert_eq!(health.score, 0.0);
+        assert_eq!(health.metrics.total_capabilities, 0);
+        assert!(!health.issues.is_empty());
+        assert_eq!(health.issues[0].type_, "error");
+        assert_eq!(health.metrics.errors, 1);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_project_warning_few_configs() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir = temp_dir.path();
+
+        // Create only one config file (should trigger warning)
+        std::fs::write(dir.join(".mcp.json"), "{}").unwrap();
+
+        let health = health_check_project(dir.to_string_lossy().to_string()).await.unwrap();
+
+        assert!(matches!(health.status, HealthStatus::Warning));
+        assert!(health.score >= 50.0 && health.score < 80.0);
+        assert_eq!(health.metrics.total_capabilities, 1);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_project_nonexistent_path() {
+        let result = health_check_project("/nonexistent/path".to_string()).await;
+
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(e.to_string().contains("does not exist"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_calculate_health_metrics_multiple_projects() {
+        let temp_dir1 = tempfile::tempdir().unwrap();
+        let dir1 = temp_dir1.path();
+        std::fs::write(dir1.join(".mcp.json"), "{}").unwrap();
+
+        let temp_dir2 = tempfile::tempdir().unwrap();
+        let dir2 = temp_dir2.path();
+        std::fs::write(dir2.join(".mcp.json"), "{}").unwrap();
+        std::fs::write(dir2.join("settings.json"), "{}").unwrap();
+
+        let projects = vec![
+            DiscoveredProject {
+                id: "project1".to_string(),
+                name: "Project 1".to_string(),
+                path: dir1.to_string_lossy().to_string(),
+                config_file_count: 1,
+                last_modified: 1000,
+                config_sources: ConfigSources {
+                    user: false,
+                    project: true,
+                    local: false,
+                },
+                mcp_servers: None,
+                sub_agents: None,
+            },
+            DiscoveredProject {
+                id: "project2".to_string(),
+                name: "Project 2".to_string(),
+                path: dir2.to_string_lossy().to_string(),
+                config_file_count: 2,
+                last_modified: 1000,
+                config_sources: ConfigSources {
+                    user: false,
+                    project: true,
+                    local: false,
+                },
+                mcp_servers: None,
+                sub_agents: None,
+            },
+        ];
+
+        let health_results = calculate_health_metrics(projects).await.unwrap();
+
+        assert_eq!(health_results.len(), 2);
+        assert!(matches!(health_results[0].status, HealthStatus::Warning));
+        assert!(matches!(health_results[1].status, HealthStatus::Good));
+    }
+
+    #[tokio::test]
+    async fn test_refresh_all_project_health() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir = temp_dir.path();
+        std::fs::write(dir.join(".mcp.json"), "{}").unwrap();
+
+        let projects = vec![DiscoveredProject {
+            id: "project1".to_string(),
+            name: "Project 1".to_string(),
+            path: dir.to_string_lossy().to_string(),
+            config_file_count: 1,
+            last_modified: 1000,
+            config_sources: ConfigSources {
+                user: false,
+                project: true,
+                local: false,
+            },
+            mcp_servers: None,
+            sub_agents: None,
+        }];
+
+        let health_results = refresh_all_project_health(projects).await.unwrap();
+
+        assert_eq!(health_results.len(), 1);
+        assert!(matches!(health_results[0].status, HealthStatus::Warning));
+    }
+
+    #[tokio::test]
+    async fn test_health_check_project_multiple_configs_good_status() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir = temp_dir.path();
+
+        // Create .mcp.json
+        std::fs::write(dir.join(".mcp.json"), "{}").unwrap();
+
+        // Create .claude/settings.json
+        let claude_dir = dir.join(".claude");
+        std::fs::create_dir_all(&claude_dir).unwrap();
+        std::fs::write(claude_dir.join("settings.json"), "{}").unwrap();
+
+        let health = health_check_project(dir.to_string_lossy().to_string()).await.unwrap();
+
+        assert!(matches!(health.status, HealthStatus::Good));
+        assert!(health.score >= 80.0);
+        assert_eq!(health.metrics.total_capabilities, 2);
+        assert!(health.issues.is_empty()); // Good status should have no issues
     }
 }

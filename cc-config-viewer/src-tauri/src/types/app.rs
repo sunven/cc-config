@@ -136,3 +136,52 @@ pub struct SummaryStats {
     pub only_in_b: u32,
     pub different_values: u32,
 }
+
+/// Health status of a project
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[allow(dead_code)]
+pub enum HealthStatus {
+    #[serde(rename = "good")]
+    Good,
+    #[serde(rename = "warning")]
+    Warning,
+    #[serde(rename = "error")]
+    Error,
+}
+
+/// Represents a health issue found in a project
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct HealthIssue {
+    pub id: String,
+    pub type_: String, // "warning" or "error"
+    pub severity: DiffSeverity,
+    pub message: String,
+    pub details: Option<String>,
+    pub project_id: String,
+}
+
+/// Health metrics for a project
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct ProjectHealth {
+    pub project_id: String,
+    pub status: HealthStatus,
+    pub score: f64, // 0-100
+    pub metrics: HealthMetrics,
+    pub issues: Vec<HealthIssue>,
+    pub recommendations: Vec<String>,
+}
+
+/// Health metrics for a project
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct HealthMetrics {
+    pub total_capabilities: u32,
+    pub valid_configs: u32,
+    pub invalid_configs: u32,
+    pub warnings: u32,
+    pub errors: u32,
+    pub last_checked: String, // ISO 8601 date string
+    pub last_accessed: Option<String>, // ISO 8601 date string
+}

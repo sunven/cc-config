@@ -8,6 +8,7 @@ import type {
   SummaryStats,
   DifferenceHighlighting,
 } from '../types/comparison'
+import type { ProjectHealth, SortBy, FilterBy, DashboardFilters, HealthMetrics } from '../types/health'
 import { discoverProjects } from '../lib/projectDetection'
 
 // Cache entry with timestamp
@@ -50,6 +51,15 @@ interface ProjectsStore {
     }
   }
 
+  // Story 5.4 - Dashboard state
+  dashboard: {
+    sortBy: SortBy
+    filterBy: FilterBy
+    selectedProjects: string[]
+    healthMetrics: HealthMetrics[]
+    isRefreshing: boolean
+  }
+
   // Actions
   setActiveProject: (project: Project | null) => void
   addProject: (project: Project) => void
@@ -77,6 +87,11 @@ interface ProjectsStore {
   calculateSummaryStats: () => Promise<void>
   toggleDifferenceFilter: () => void
   categorizeDifferences: () => Promise<void>
+
+  // Story 5.4 - Dashboard actions
+  updateProjectHealth: (projectId: string) => Promise<void>
+  setDashboardFilters: (filters: Partial<DashboardFilters>) => void
+  refreshAllProjectHealth: () => Promise<void>
 }
 
 // Load persisted lastAccessed timestamps from localStorage
@@ -134,6 +149,15 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => ({
         differentValues: 0,
       },
     },
+  },
+
+  // Story 5.4 - Dashboard initial state
+  dashboard: {
+    sortBy: 'health',
+    filterBy: 'all',
+    selectedProjects: [],
+    healthMetrics: [],
+    isRefreshing: false,
   },
 
   setActiveProject: (project) => set({ activeProject: project }),
@@ -427,6 +451,114 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => ({
       }))
     } catch (error) {
       console.error('Failed to categorize differences:', error)
+    }
+  },
+
+  // Story 5.4 - Dashboard actions
+  updateProjectHealth: async (projectId) => {
+    const { projects, dashboard } = get()
+    const project = projects.find((p) => p.id === projectId || p.path === projectId)
+
+    if (!project) {
+      console.warn('Project not found for health update:', projectId)
+      return
+    }
+
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const health = await invoke('health_check_project', {
+        projectPath: project.path,
+      }) as ProjectHealth
+
+      set((state) => {
+        const existingIndex = state.dashboard.healthMetrics.findIndex(
+          (m) => m.projectId === projectId
+        )
+        const updatedMetrics = { ...health.metrics, projectId: project.id }
+
+        let newHealthMetrics
+        if (existingIndex >= 0) {
+          newHealthMetrics = [...state.dashboard.healthMetrics]
+          newHealthMetrics[existingIndex] = updatedMetrics
+        } else {
+          newHealthMetrics = [...state.dashboard.healthMetrics, updatedMetrics]
+        }
+
+        return {
+          dashboard: {
+            ...state.dashboard,
+            healthMetrics: newHealthMetrics,
+          },
+        }
+      })
+    } catch (error) {
+      console.error('Failed to update project health:', error)
+    }
+  },
+
+  setDashboardFilters: (filters) =>
+    set((state) => ({
+      dashboard: {
+        ...state.dashboard,
+        ...filters,
+      },
+    })),
+
+  refreshAllProjectHealth: async () => {
+    const { projects } = get()
+
+    if (projects.length === 0) {
+      return
+    }
+
+    set((state) => ({
+      dashboard: {
+        ...state.dashboard,
+        isRefreshing: true,
+      },
+    }))
+
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+
+      // Convert projects to DiscoveredProject format for backend
+      const discoveredProjects = projects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        path: p.path,
+        configFileCount: p.configFileCount || 0,
+        lastModified: Math.floor((p.updatedAt?.getTime() || Date.now()) / 1000),
+        configSources: {
+          user: false,
+          project: true,
+          local: false,
+        },
+      }))
+
+      const healthResults = await invoke('calculate_health_metrics', {
+        projects: discoveredProjects,
+      }) as ProjectHealth[]
+
+      const healthMetrics = healthResults.map((health) => ({
+        ...health.metrics,
+        projectId: health.projectId,
+      }))
+
+      set((state) => ({
+        dashboard: {
+          ...state.dashboard,
+          healthMetrics,
+          isRefreshing: false,
+        },
+      }))
+    } catch (error) {
+      console.error('Failed to refresh project health:', error)
+      set((state) => ({
+        dashboard: {
+          ...state.dashboard,
+          isRefreshing: false,
+        },
+      }))
     }
   },
 }))

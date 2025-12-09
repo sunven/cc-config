@@ -849,5 +849,84 @@ describe('Zustand Stores', () => {
       expect(result.current.comparison.highlighting.summary.totalDifferences).toBe(0)
       expect(result.current.comparison.highlighting.diffResults).toEqual([])
     })
+
+    // Story 5.4 - Dashboard state tests
+    it('initializes with default dashboard state', () => {
+      const { result } = renderHook(() => useProjectsStore())
+      expect(result.current.dashboard.sortBy).toBe('health')
+      expect(result.current.dashboard.filterBy).toBe('all')
+      expect(result.current.dashboard.selectedProjects).toEqual([])
+      expect(result.current.dashboard.healthMetrics).toEqual([])
+      expect(result.current.dashboard.isRefreshing).toBe(false)
+    })
+
+    it('sets dashboard filters correctly', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      act(() => {
+        result.current.setDashboardFilters({
+          sortBy: 'name',
+          filterBy: 'warning',
+        })
+      })
+
+      expect(result.current.dashboard.sortBy).toBe('name')
+      expect(result.current.dashboard.filterBy).toBe('warning')
+    })
+
+    it('partially updates dashboard filters', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      // Set initial filters
+      act(() => {
+        result.current.setDashboardFilters({
+          sortBy: 'name',
+          filterBy: 'all',
+        })
+      })
+
+      // Update only sortBy
+      act(() => {
+        result.current.setDashboardFilters({
+          sortBy: 'lastAccessed',
+        })
+      })
+
+      // Verify only sortBy changed, filterBy remained
+      expect(result.current.dashboard.sortBy).toBe('lastAccessed')
+      expect(result.current.dashboard.filterBy).toBe('all')
+    })
+
+    it('adds project to selectedProjects', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      act(() => {
+        result.current.setDashboardFilters({
+          selectedProjects: ['project-1'],
+        })
+      })
+
+      expect(result.current.dashboard.selectedProjects).toEqual(['project-1'])
+    })
+
+    it('removes project from selectedProjects', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      // Add initial projects
+      act(() => {
+        result.current.setDashboardFilters({
+          selectedProjects: ['project-1', 'project-2', 'project-3'],
+        })
+      })
+
+      // Remove one project
+      act(() => {
+        result.current.setDashboardFilters({
+          selectedProjects: ['project-1', 'project-3'],
+        })
+      })
+
+      expect(result.current.dashboard.selectedProjects).toEqual(['project-1', 'project-3'])
+    })
   })
 })

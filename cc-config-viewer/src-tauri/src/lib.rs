@@ -5,7 +5,10 @@ mod types;
 
 use commands::config::{read_config, parse_config, watch_config};
 use commands::source::{get_source_location, open_in_editor, copy_to_clipboard};
-use commands::project_commands::{list_projects, scan_projects, watch_projects};
+use commands::project_commands::{
+    list_projects, scan_projects, watch_projects, health_check_project, calculate_health_metrics,
+    refresh_all_project_health,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,7 +39,10 @@ pub fn run() {
             copy_to_clipboard,
             list_projects,
             scan_projects,
-            watch_projects
+            watch_projects,
+            health_check_project,
+            calculate_health_metrics,
+            refresh_all_project_health
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

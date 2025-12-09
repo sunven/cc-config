@@ -4,6 +4,7 @@ export * from './mcp'
 export * from './agent'
 export * from './capability'
 export * from './comparison'
+export * from './health'
 
 export interface AppError {
   type: 'filesystem' | 'permission' | 'parse' | 'network'
