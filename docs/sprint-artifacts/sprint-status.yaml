@@ -9,6 +9,8 @@
 # Epic Status:
 #   - backlog: Epic exists in epic file but not contexted
 #   - contexted: Epic tech context created (required before drafting stories)
+#   - in-progress: Epic is actively being worked on
+#   - done: Epic completed
 #
 # Story Status:
 #   - backlog: Story only exists in epic file
@@ -29,7 +31,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2025-12-07
+generated: 2025-12-09
 project: cc-config
 project_key: cc-config
 tracking_system: file-system
@@ -65,24 +67,24 @@ development_status:
   3-1-color-coded-source-indicators: done
   3-2-inheritance-chain-calculation: done
   3-3-inheritance-path-visualization: done
-  3-4-source-trace-functionality: review
+  3-4-source-trace-functionality: done
   3-5-inheritance-chain-summary: done
   epic-3-retrospective: optional
 
   # Epic 4: MCP & Sub Agents Management
   epic-4: in-progress
-  4-1-mcp-servers-display: review
-  4-2-sub-agents-display: review
+  4-1-mcp-servers-display: done
+  4-2-sub-agents-display: done
   4-3-unified-capability-panel: done
   4-4-capability-details-view: done
-  4-5-capability-statistics: review
+  4-5-capability-statistics: done
   epic-4-retrospective: optional
 
   # Epic 5: Cross-Project Configuration Comparison
   epic-5: in-progress
-  5-1-project-discovery-and-listing: review
-  5-2-side-by-side-comparison-view: review
-  5-3-difference-highlighting: backlog
+  5-1-project-discovery-and-listing: done
+  5-2-side-by-side-comparison-view: done
+  5-3-difference-highlighting: ready-for-dev
   5-4-project-health-dashboard: backlog
   5-5-configuration-export: backlog
   epic-5-retrospective: optional
