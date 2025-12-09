@@ -7,6 +7,8 @@ import { ProjectTab } from '@/components/ProjectTab'
 import { ScopeIndicator } from '@/components/ScopeIndicator'
 import { ProjectSelector } from '@/components/ProjectSelector'
 import { CapabilityPanel } from '@/components/CapabilityPanel'
+import { McpList } from '@/components/McpList'
+import { AgentList } from '@/components/AgentList'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -154,6 +156,12 @@ function App() {
                         isLoading={isInitialLoading}
                         error={error}
                       />
+                    </TabsContent>
+                    <TabsContent value="mcp" className="mt-4">
+                      <McpList scope="project" />
+                    </TabsContent>
+                    <TabsContent value="agents" className="mt-4">
+                      <AgentList scope="project" />
                     </TabsContent>
                     <TabsContent value="capabilities" className="mt-4">
                       <CapabilityPanel scope="project" projectName={activeProject?.name} />

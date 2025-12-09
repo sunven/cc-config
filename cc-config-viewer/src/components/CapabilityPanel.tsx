@@ -25,7 +25,44 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
   })
   const [sort, setSort] = useState<CapabilitySortState>({ field: 'name', direction: 'asc' })
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Debounce search input (300ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Load saved state on mount
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem(`capability-panel-${scope}`)
+      if (savedState) {
+        const parsed = JSON.parse(savedState)
+        setFilters(parsed.filters || { type: 'all' })
+        setSort(parsed.sort || { field: 'name', direction: 'asc' })
+        setSearchQuery(parsed.searchQuery || '')
+      }
+    } catch (error) {
+      console.warn('Failed to load saved capability panel state:', error)
+    }
+  }, [scope])
+
+  // Save state when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        `capability-panel-${scope}`,
+        JSON.stringify({ filters, sort, searchQuery: debouncedSearchQuery })
+      )
+    } catch (error) {
+      console.warn('Failed to save capability panel state:', error)
+    }
+  }, [filters, sort, debouncedSearchQuery, scope])
 
   // Load capabilities on mount and scope change
   useEffect(() => {
@@ -36,9 +73,9 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
   const processedCapabilities = useMemo(() => {
     let filtered = [...capabilities]
 
-    // Apply search query first
-    if (searchQuery.trim()) {
-      filtered = filterCapabilities({ ...filters, searchQuery })
+    // Apply debounced search query first
+    if (debouncedSearchQuery.trim()) {
+      filtered = filterCapabilities({ ...filters, searchQuery: debouncedSearchQuery })
     } else {
       filtered = filterCapabilities(filters)
     }
@@ -47,7 +84,7 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
     filtered = sortCapabilities(filtered, sort)
 
     return filtered
-  }, [capabilities, filters, sort, searchQuery, filterCapabilities, sortCapabilities])
+  }, [capabilities, filters, sort, debouncedSearchQuery, filterCapabilities, sortCapabilities])
 
   // Get counts for each type
   const typeCounts = useMemo(() => {

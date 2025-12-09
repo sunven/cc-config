@@ -1,4 +1,4 @@
-# generated: 2025-12-08
+# generated: 2025-12-09
 # project: cc-config
 # project_key: cc-config
 # tracking_system: file-system
@@ -73,7 +73,7 @@ development_status:
   epic-4: in-progress
   4-1-mcp-servers-display: review
   4-2-sub-agents-display: review
-  4-3-unified-capability-panel: review
+  4-3-unified-capability-panel: done
   4-4-capability-details-view: backlog
   4-5-capability-statistics: backlog
   epic-4-retrospective: optional

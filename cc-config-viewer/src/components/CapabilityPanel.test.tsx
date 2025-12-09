@@ -56,8 +56,7 @@ describe('CapabilityPanel', () => {
 
   describe('Initial Rendering', () => {
     it('should render the panel with correct title', () => {
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps) => caps),
@@ -99,8 +98,7 @@ describe('CapabilityPanel', () => {
 
   describe('Error Display', () => {
     it('should display error message when error is present', () => {
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps) => caps),
@@ -114,8 +112,7 @@ describe('CapabilityPanel', () => {
     })
 
     it('should show retry button in error state', () => {
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps) => caps),
@@ -130,14 +127,13 @@ describe('CapabilityPanel', () => {
 
   describe('Capabilities Display', () => {
     beforeEach(() => {
-      const { useConfigStore } = require('../stores/configStore')
       const mockCapabilities = [
         createMockMcpCapability('MCP 1'),
         createMockMcpCapability('MCP 2', 'project'),
         createMockAgentCapability('Agent 1'),
         createMockAgentCapability('Agent 2', 'project')
       ]
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: mockCapabilities,
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps, filters) => {
@@ -171,8 +167,7 @@ describe('CapabilityPanel', () => {
     })
 
     it('should show "no capabilities" message when list is empty', () => {
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps) => caps),
@@ -188,12 +183,11 @@ describe('CapabilityPanel', () => {
 
   describe('Search Functionality', () => {
     beforeEach(() => {
-      const { useConfigStore } = require('../stores/configStore')
       const mockCapabilities = [
         createMockMcpCapability('Filesystem'),
         createMockAgentCapability('Code Reviewer')
       ]
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: mockCapabilities,
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps, filters) => {
@@ -242,14 +236,13 @@ describe('CapabilityPanel', () => {
 
   describe('Filter Functionality', () => {
     beforeEach(() => {
-      const { useConfigStore } = require('../stores/configStore')
       const mockCapabilities = [
         createMockMcpCapability('MCP 1'),
         createMockMcpCapability('MCP 2', 'project'),
         createMockAgentCapability('Agent 1'),
         createMockAgentCapability('Agent 2', 'project')
       ]
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: mockCapabilities,
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps, filters) => {
@@ -326,13 +319,12 @@ describe('CapabilityPanel', () => {
 
   describe('Sort Functionality', () => {
     beforeEach(() => {
-      const { useConfigStore } = require('../stores/configStore')
       const mockCapabilities = [
         createMockMcpCapability('Zebra'),
         createMockAgentCapability('Alpha'),
         createMockMcpCapability('Beta')
       ]
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: mockCapabilities,
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps) => caps),
@@ -406,8 +398,7 @@ describe('CapabilityPanel', () => {
   describe('Refresh Functionality', () => {
     it('should call updateCapabilities when refresh button is clicked', async () => {
       const updateCapabilities = vi.fn()
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities,
         filterCapabilities: vi.fn((caps) => caps),
@@ -425,8 +416,7 @@ describe('CapabilityPanel', () => {
 
     it('should disable refresh button while refreshing', async () => {
       const updateCapabilities = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)))
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities,
         filterCapabilities: vi.fn((caps) => caps),
@@ -445,8 +435,7 @@ describe('CapabilityPanel', () => {
   describe('Data Loading', () => {
     it('should call updateCapabilities on mount', () => {
       const updateCapabilities = vi.fn()
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities,
         filterCapabilities: vi.fn((caps) => caps),
@@ -460,8 +449,7 @@ describe('CapabilityPanel', () => {
 
     it('should update capabilities when scope changes', () => {
       const updateCapabilities = vi.fn()
-      const { useConfigStore } = require('../stores/configStore')
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: [],
         updateCapabilities,
         filterCapabilities: vi.fn((caps) => caps),
@@ -479,12 +467,11 @@ describe('CapabilityPanel', () => {
 
   describe('Results Count Display', () => {
     it('should update count when filtering', async () => {
-      const { useConfigStore } = require('../stores/configStore')
       const mockCapabilities = [
         createMockMcpCapability('MCP 1'),
         createMockAgentCapability('Agent 1')
       ]
-      useConfigStore.mockReturnValue({
+      vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
         capabilities: mockCapabilities,
         updateCapabilities: vi.fn(),
         filterCapabilities: vi.fn((caps, filters) => {
