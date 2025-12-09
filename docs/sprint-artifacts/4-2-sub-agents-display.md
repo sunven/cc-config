@@ -1,6 +1,6 @@
 # Story 4.2: Sub Agents Display
 
-Status: Ready for Review
+Status: done
 
 ## Story
 
