@@ -6,6 +6,7 @@ import type { UnifiedCapability } from '../types/capability'
 
 interface CapabilityRowProps {
   capability: UnifiedCapability
+  onClick?: () => void
 }
 
 /**
@@ -13,7 +14,8 @@ interface CapabilityRowProps {
  * Follows the same pattern as McpBadge and AgentBadge
  */
 export const CapabilityRow: React.FC<CapabilityRowProps> = memo(function CapabilityRow({
-  capability
+  capability,
+  onClick
 }) {
   const getSourceColor = (source: 'user' | 'project' | 'local') => {
     switch (source) {
@@ -90,9 +92,10 @@ export const CapabilityRow: React.FC<CapabilityRowProps> = memo(function Capabil
   return (
     <TooltipProvider>
       <Card
-        className="p-3 hover:shadow-md transition-shadow"
+        className="p-3 hover:shadow-md transition-shadow cursor-pointer"
         role="article"
         aria-label={`${capability.type === 'mcp' ? 'MCP server' : 'Agent'}: ${capability.name}`}
+        onClick={onClick}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">

@@ -3,6 +3,7 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { CapabilityRow } from './CapabilityRow'
+import { CapabilityDetails } from './CapabilityDetails'
 import { useConfigStore } from '../stores/configStore'
 import type { UnifiedCapability, CapabilityFilterState, CapabilitySortState } from '../types/capability'
 
@@ -27,6 +28,10 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Modal state for CapabilityDetails
+  const [selectedCapability, setSelectedCapability] = useState<UnifiedCapability | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
   // Debounce search input (300ms delay)
   useEffect(() => {
@@ -117,6 +122,18 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
   const clearFilters = () => {
     setFilters({ type: 'all' })
     setSearchQuery('')
+  }
+
+  // Handle capability row click to open details modal
+  const handleCapabilityClick = (capability: UnifiedCapability) => {
+    setSelectedCapability(capability)
+    setIsDetailsModalOpen(true)
+  }
+
+  // Handle closing the details modal
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false)
+    setSelectedCapability(null)
   }
 
   return (
@@ -233,6 +250,7 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
             <CapabilityRow
               key={capability.id}
               capability={capability}
+              onClick={() => handleCapabilityClick(capability)}
             />
           ))}
         </div>
@@ -245,6 +263,15 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
               : `No capabilities configured for ${scope} scope`}
           </p>
         </div>
+      )}
+
+      {/* Capability Details Modal */}
+      {selectedCapability && (
+        <CapabilityDetails
+          capability={selectedCapability}
+          open={isDetailsModalOpen}
+          onClose={handleCloseDetailsModal}
+        />
       )}
     </div>
   )
