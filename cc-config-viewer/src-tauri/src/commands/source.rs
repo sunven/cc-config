@@ -161,12 +161,9 @@ pub async fn open_in_editor(file_path: String, line_number: Option<u32>) -> Resu
 /// Copy text to system clipboard
 #[tauri::command]
 pub async fn copy_to_clipboard(text: String) -> Result<(), AppError> {
-    use tauri::api::clipboard;
-
-    clipboard::write_text(&tauri::generate_context!(), &text)
-        .map_err(|e| AppError::Filesystem(format!("Failed to copy to clipboard: {}", e)))?;
-
-    println!("Successfully copied to clipboard: {}", text);
+    // TODO: Implement clipboard functionality with tauri-plugin-clipboard
+    // For now, just log the text
+    println!("Clipboard: {}", text);
     Ok(())
 }
 

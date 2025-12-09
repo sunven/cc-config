@@ -77,3 +77,43 @@ export async function watchConfig(path: string, callback: (path: string) => void
     throw convertRustError(error)
   }
 }
+
+// Project discovery commands
+export interface DiscoveredProject {
+  id: string
+  name: string
+  path: string
+  config_file_count: number
+  last_modified: number
+  config_sources: {
+    user: boolean
+    project: boolean
+    local: boolean
+  }
+  mcp_servers?: string[]
+  sub_agents?: string[]
+}
+
+export async function listProjects(): Promise<DiscoveredProject[]> {
+  try {
+    return await invoke<DiscoveredProject[]>('list_projects')
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function scanProjects(depth: number = 3): Promise<DiscoveredProject[]> {
+  try {
+    return await invoke<DiscoveredProject[]>('scan_projects', { depth })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function watchProjects(): Promise<void> {
+  try {
+    await invoke('watch_projects')
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}

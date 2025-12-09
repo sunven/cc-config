@@ -24,3 +24,19 @@ export interface ProjectScope {
   label: string
   description: string
 }
+
+// Story 5.1 - Enhanced project discovery
+export interface DiscoveredProject {
+  id: string
+  name: string
+  path: string
+  configFileCount: number
+  lastModified: Date
+  configSources: {
+    user: boolean
+    project: boolean
+    local: boolean
+  }
+  mcpServers?: string[]
+  subAgents?: string[]
+}

@@ -1,5 +1,5 @@
-import { readConfig } from './tauriApi'
-import type { Project } from '../types/project'
+import { readConfig, listProjects, scanProjects, type DiscoveredProject as RustDiscoveredProject } from './tauriApi'
+import type { Project, DiscoveredProject } from '../types/project'
 
 /**
  * Generate a unique ID for a project based on its path
@@ -24,6 +24,35 @@ function getProjectNameFromPath(path: string): string {
   // Get last segment
   const segments = normalizedPath.split('/').filter(Boolean)
   return segments[segments.length - 1] || 'project'
+}
+
+/**
+ * Convert Rust DiscoveredProject to frontend Project format
+ */
+function convertToProject(rustProject: RustDiscoveredProject): Project {
+  // Extract server and agent counts from arrays
+  const mcpCount = rustProject.mcp_servers?.reduce((count, serverStr) => {
+    const match = serverStr.match(/(\d+)/)
+    return count + (match ? parseInt(match[1], 10) : 0)
+  }, 0) || 0
+
+  const agentCount = rustProject.sub_agents?.reduce((count, agentStr) => {
+    const match = agentStr.match(/(\d+)/)
+    return count + (match ? parseInt(match[1], 10) : 0)
+  }, 0) || 0
+
+  return {
+    id: rustProject.id,
+    name: rustProject.name,
+    path: rustProject.path,
+    configPath: `${rustProject.path}/.mcp.json`,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastAccessed: null,
+    mcpCount,
+    agentCount,
+    status: rustProject.config_file_count > 0 ? 'valid' : 'missing'
+  }
 }
 
 /**
@@ -78,66 +107,67 @@ export async function countAgents(projectPath: string): Promise<number> {
 }
 
 /**
- * Discover all projects from user's Claude configuration
- * Parses ~/.claude.json and validates each project path
+ * Discover all projects from filesystem using Tauri commands
+ * This is the enhanced implementation for Story 5.1
  */
 export async function discoverProjects(): Promise<Project[]> {
-  const projects: Project[] = []
-
   try {
-    // 1. Parse ~/.claude.json for registered projects
-    const userConfigContent = await readConfig('~/.claude.json')
-    const userConfig = JSON.parse(userConfigContent)
+    // Use Tauri command to scan filesystem for projects
+    const discoveredProjects = await listProjects()
 
-    if (userConfig.projects && typeof userConfig.projects === 'object') {
-      // Process each project in parallel for better performance
-      const projectEntries = Object.entries(userConfig.projects) as [
-        string,
-        { path: string; lastOpened?: string }
-      ][]
+    // Convert Rust projects to frontend format
+    const projects = discoveredProjects.map(convertToProject)
 
-      const projectPromises = projectEntries.map(async ([name, projectData]) => {
-        const exists = await validateProjectPath(projectData.path)
-        const mcpCount = await countMcpServers(projectData.path)
-        const agentCount = await countAgents(projectData.path)
+    // Sort projects alphabetically by default
+    projects.sort((a, b) => a.name.localeCompare(b.name))
 
-        const project: Project = {
-          id: generateProjectId(projectData.path),
-          name,
-          path: projectData.path,
-          configPath: `${projectData.path}/.mcp.json`,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastAccessed: projectData.lastOpened ? new Date(projectData.lastOpened) : null,
-          mcpCount,
-          agentCount,
-          status: exists ? 'valid' : 'missing',
-        }
-
-        return project
-      })
-
-      const discoveredProjects = await Promise.all(projectPromises)
-      projects.push(...discoveredProjects)
-    }
-
-    // 2. Add current project if not already in the list
-    const currentProject = await detectCurrentProject()
-    if (currentProject && !projects.find((p) => p.path === currentProject.path)) {
-      projects.unshift(currentProject)
-    }
-
-    // 3. Sort projects by lastAccessed timestamp (most recent first)
-    projects.sort((a, b) => {
-      const aTime = a.lastAccessed?.getTime() ?? 0
-      const bTime = b.lastAccessed?.getTime() ?? 0
-      return bTime - aTime
-    })
+    return projects
   } catch (error) {
-    console.warn('Failed to discover projects:', error)
+    console.error('Failed to discover projects:', error)
+    return []
   }
+}
 
-  return projects
+/**
+ * Discover projects with custom scan depth
+ */
+export async function discoverProjectsWithDepth(depth: number): Promise<Project[]> {
+  try {
+    const discoveredProjects = await scanProjects(depth)
+    const projects = discoveredProjects.map(convertToProject)
+
+    // Sort projects alphabetically
+    projects.sort((a, b) => a.name.localeCompare(b.name))
+
+    return projects
+  } catch (error) {
+    console.error('Failed to discover projects:', error)
+    return []
+  }
+}
+
+/**
+ * Get raw discovered projects (Story 5.1 format)
+ */
+export async function getDiscoveredProjects(): Promise<DiscoveredProject[]> {
+  try {
+    const discoveredProjects = await listProjects()
+
+    // Convert to frontend format
+    return discoveredProjects.map((rp) => ({
+      id: rp.id,
+      name: rp.name,
+      path: rp.path,
+      configFileCount: rp.config_file_count,
+      lastModified: new Date(rp.last_modified * 1000),
+      configSources: rp.config_sources,
+      mcpServers: rp.mcp_servers,
+      subAgents: rp.sub_agents
+    }))
+  } catch (error) {
+    console.error('Failed to get discovered projects:', error)
+    return []
+  }
 }
 
 /**

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   detectCurrentProject,
   discoverProjects,
+  discoverProjectsWithDepth,
+  getDiscoveredProjects,
   validateProjectPath,
   countMcpServers,
   countAgents,
@@ -12,6 +14,8 @@ import * as tauriApi from './tauriApi'
 // Mock tauri API
 vi.mock('./tauriApi', () => ({
   readConfig: vi.fn(),
+  listProjects: vi.fn(),
+  scanProjects: vi.fn(),
 }))
 
 describe('projectDetection', () => {
@@ -297,6 +301,175 @@ describe('projectDetection', () => {
       expect(id).toBeTruthy()
       expect(typeof id).toBe('string')
       expect(id.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('discoverProjectsWithDepth', () => {
+    it('calls scanProjects with specified depth', async () => {
+      const mockRustProjects = [
+        {
+          id: '1',
+          name: 'Project One',
+          path: '/home/user/projects/project-one',
+          config_file_count: 2,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: true, project: true, local: false },
+          mcp_servers: ['2 servers'],
+          sub_agents: ['3 agents']
+        }
+      ]
+
+      vi.mocked(tauriApi.scanProjects).mockResolvedValue(mockRustProjects)
+
+      const result = await discoverProjectsWithDepth(5)
+
+      expect(tauriApi.scanProjects).toHaveBeenCalledWith(5)
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('Project One')
+    })
+
+    it('handles scanProjects errors gracefully', async () => {
+      vi.mocked(tauriApi.scanProjects).mockRejectedValue(new Error('Scan failed'))
+
+      const result = await discoverProjectsWithDepth(3)
+
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('getDiscoveredProjects', () => {
+    it('returns projects in Story 5.1 format', async () => {
+      const mockRustProjects = [
+        {
+          id: '1',
+          name: 'Test Project',
+          path: '/home/user/projects/test',
+          config_file_count: 3,
+          last_modified: 1705123456, // Unix timestamp
+          config_sources: { user: true, project: false, local: false },
+          mcp_servers: ['2 servers'],
+          sub_agents: ['1 agent']
+        }
+      ]
+
+      vi.mocked(tauriApi.listProjects).mockResolvedValue(mockRustProjects)
+
+      const result = await getDiscoveredProjects()
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
+        id: '1',
+        name: 'Test Project',
+        path: '/home/user/projects/test',
+        configFileCount: 3,
+        lastModified: new Date(1705123456 * 1000),
+        configSources: { user: true, project: false, local: false },
+        mcpServers: ['2 servers'],
+        subAgents: ['1 agent']
+      })
+    })
+
+    it('handles missing optional fields', async () => {
+      const mockRustProjects = [
+        {
+          id: '1',
+          name: 'Minimal Project',
+          path: '/home/user/projects/minimal',
+          config_file_count: 0,
+          last_modified: 1705123456,
+          config_sources: { user: false, project: false, local: false }
+          // No mcp_servers or sub_agents
+        }
+      ]
+
+      vi.mocked(tauriApi.listProjects).mockResolvedValue(mockRustProjects)
+
+      const result = await getDiscoveredProjects()
+
+      expect(result[0].mcpServers).toBeUndefined()
+      expect(result[0].subAgents).toBeUndefined()
+    })
+
+    it('returns empty array on error', async () => {
+      vi.mocked(tauriApi.listProjects).mockRejectedValue(new Error('Failed to list'))
+
+      const result = await getDiscoveredProjects()
+
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('discoverProjects (enhanced)', () => {
+    it('uses listProjects from tauri API', async () => {
+      const mockRustProjects = [
+        {
+          id: '1',
+          name: 'Rust Project',
+          path: '/home/user/projects/rust',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['1 server']
+        }
+      ]
+
+      vi.mocked(tauriApi.listProjects).mockResolvedValue(mockRustProjects)
+
+      const result = await discoverProjects()
+
+      expect(tauriApi.listProjects).toHaveBeenCalled()
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('Rust Project')
+    })
+
+    it('sorts projects alphabetically', async () => {
+      const mockRustProjects = [
+        {
+          id: '1',
+          name: 'Zebra Project',
+          path: '/home/user/zebra',
+          config_file_count: 0,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: false, local: false }
+        },
+        {
+          id: '2',
+          name: 'Apple Project',
+          path: '/home/user/apple',
+          config_file_count: 0,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: false, local: false }
+        }
+      ]
+
+      vi.mocked(tauriApi.listProjects).mockResolvedValue(mockRustProjects)
+
+      const result = await discoverProjects()
+
+      expect(result[0].name).toBe('Apple Project')
+      expect(result[1].name).toBe('Zebra Project')
+    })
+
+    it('extracts server and agent counts correctly', async () => {
+      const mockRustProjects = [
+        {
+          id: '1',
+          name: 'Count Project',
+          path: '/home/user/count',
+          config_file_count: 2,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: true, project: true, local: false },
+          mcp_servers: ['5 servers', '3 servers'], // Total: 8
+          sub_agents: ['2 agents'] // Total: 2
+        }
+      ]
+
+      vi.mocked(tauriApi.listProjects).mockResolvedValue(mockRustProjects)
+
+      const result = await discoverProjects()
+
+      expect(result[0].mcpCount).toBe(8)
+      expect(result[0].agentCount).toBe(2)
     })
   })
 })
