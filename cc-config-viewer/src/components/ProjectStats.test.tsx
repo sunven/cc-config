@@ -134,7 +134,7 @@ describe('ProjectStats', () => {
       configSources: { user: false, project: true, local: false }
     }
 
-    render(<ProjectStats projects={[projectWithoutMcp]}>)
+    render(<ProjectStats projects={[projectWithoutMcp]}></ProjectStats>)
 
     expect(screen.getByText('Active Servers')).toBeInTheDocument()
     expect(screen.getByText('0')).toBeInTheDocument()

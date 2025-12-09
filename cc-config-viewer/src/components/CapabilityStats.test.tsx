@@ -152,7 +152,7 @@ describe('CapabilityStats', () => {
       render(<CapabilityStats stats={mockStats} scope="project" />)
       expect(screen.getByText(/Based on current/)).toBeInTheDocument()
     })
-  )})
+  })
 
   describe('RED Phase - Visual Styling', () => {
     it('should have proper styling classes', () => {
@@ -206,7 +206,6 @@ describe('CapabilityStats', () => {
       render(<CapabilityStats stats={mockStats} scope="project" />)
       // Verify component renders with semantic elements
       expect(screen.getByText('Capability Statistics')).toBeInTheDocument()
-    }) scope="project" />)
       // Should use proper heading structure
       const heading = screen.getByRole('heading', { level: 3 })
       expect(heading).toBeInTheDocument()
@@ -216,7 +215,6 @@ describe('CapabilityStats', () => {
       render(<CapabilityStats stats={mockStats} scope="project" />)
       // Check for text labels
       expect(screen.getByText('MCP Servers')).toBeInTheDocument()
-    }) scope="project" />)
       // All stats should have text labels
       expect(screen.getByText(/Total MCP/)).toBeInTheDocument()
       expect(screen.getByText(/Total Agents/)).toBeInTheDocument()
@@ -268,7 +266,6 @@ describe('CapabilityStats', () => {
     it('should display zero state when no capabilities', () => {
       render(<CapabilityStats stats={mockEmptyStats} scope="project" />)
       expect(screen.getByText('Capability Statistics')).toBeInTheDocument()
-    }) scope="project" />)
       expect(screen.getByText(/0/)).toBeInTheDocument()
       expect(screen.getByText('No capabilities found in this scope.')).toBeInTheDocument()
     })
@@ -284,7 +281,6 @@ describe('CapabilityStats', () => {
       render(<CapabilityStats stats={mockStats} scope="project" />)
       // Just verify component renders
       expect(screen.getByText('Total Counts')).toBeInTheDocument()
-    }) scope="project" />)
       // Should have a grid layout for displaying multiple stats
       const statsSection = screen.getByText('Total MCP').closest('div')
       expect(statsSection).toBeInTheDocument()

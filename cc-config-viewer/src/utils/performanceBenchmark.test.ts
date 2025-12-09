@@ -100,7 +100,7 @@ describe('Performance Benchmarks - Story 3.4', () => {
       const { openFileInEditor } = await import('./externalEditorLauncher')
       const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
 
-      mockImplementation for Tauri invoke
+      // Mock implementation for Tauri invoke
       mockInvoke.mockImplementation(async (cmd: string, args: any) => {
         // Simulate editor launch
         await new Promise(resolve => setTimeout(resolve, 20))
