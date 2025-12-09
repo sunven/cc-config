@@ -9,6 +9,8 @@ import { ProjectSelector } from '@/components/ProjectSelector'
 import { CapabilityPanel } from '@/components/CapabilityPanel'
 import { McpList } from '@/components/McpList'
 import { AgentList } from '@/components/AgentList'
+import { ProjectDashboard } from '@/components/ProjectDashboard'
+import { ProjectComparison } from '@/components/ProjectComparison'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -24,6 +26,9 @@ function App() {
   // Content tab state for capability views
   const [currentContentTab, setCurrentContentTab] = useState<'config' | 'mcp' | 'agents' | 'capabilities'>('config')
 
+  // View state for dashboard and comparison
+  const [currentView, setCurrentView] = useState<'dashboard' | 'comparison'>('dashboard')
+
   // Use selectors for configStore
   const configs = useConfigStore((state) => state.configs)
   const isInitialLoading = useConfigStore((state) => state.isInitialLoading)
@@ -33,6 +38,7 @@ function App() {
   // Use selectors for projectsStore
   const activeProject = useProjectsStore((state) => state.activeProject)
   const setActiveProject = useProjectsStore((state) => state.setActiveProject)
+  const comparison = useProjectsStore((state) => state.comparison)
 
   // Initialize file watcher for automatic config updates
   useFileWatcher()
@@ -82,11 +88,28 @@ function App() {
     switchToScope('project', project.path)
   }, [setCurrentScope, switchToScope])
 
+  // Handle view navigation
+  const navigateToDashboard = useCallback(() => {
+    setCurrentView('dashboard')
+  }, [])
+
+  const navigateToComparison = useCallback(() => {
+    setCurrentView('comparison')
+  }, [])
+
+  // Handle content tab switching
+  const switchToCapabilitiesTab = useCallback(() => {
+    setCurrentContentTab('capabilities')
+  }, [])
+
   // Memoize project tab visibility condition
   const showProjectTab = useMemo(() =>
     (activeProject || process.env.NODE_ENV === 'test'),
     [activeProject]
   )
+
+  // Check if comparison is active
+  const isComparisonActive = comparison.isComparing
 
   // Dynamic grid columns based on visible tabs
   const tabGridCols = showProjectTab ? 'grid-cols-2' : 'grid-cols-1'
@@ -116,11 +139,12 @@ function App() {
                   <ScopeIndicator scope="user" />
                 </div>
                 <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="config">Config</TabsTrigger>
                     <TabsTrigger value="mcp">MCP</TabsTrigger>
                     <TabsTrigger value="agents">Agents</TabsTrigger>
                     <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
+                    <TabsTrigger value="dashboard" onClick={() => setCurrentView('dashboard')}>Dashboard</TabsTrigger>
                   </TabsList>
                   <TabsContent value="config" className="mt-4">
                     <ConfigList
@@ -133,6 +157,9 @@ function App() {
                   <TabsContent value="capabilities" className="mt-4">
                     <CapabilityPanel scope="user" />
                   </TabsContent>
+                  <TabsContent value="dashboard" className="mt-4">
+                    <ProjectDashboard onViewCapabilities={switchToCapabilitiesTab} />
+                  </TabsContent>
                 </Tabs>
               </TabsContent>
               {showProjectTab && (
@@ -143,11 +170,12 @@ function App() {
                   </div>
                   <ProjectTab scope="project" project={activeProject} />
                   <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
                       <TabsTrigger value="config">Config</TabsTrigger>
                       <TabsTrigger value="mcp">MCP</TabsTrigger>
                       <TabsTrigger value="agents">Agents</TabsTrigger>
                       <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
+                      <TabsTrigger value="dashboard" onClick={() => setCurrentView('dashboard')}>Dashboard</TabsTrigger>
                     </TabsList>
                     <TabsContent value="config" className="mt-4">
                       <ConfigList
@@ -166,10 +194,20 @@ function App() {
                     <TabsContent value="capabilities" className="mt-4">
                       <CapabilityPanel scope="project" projectName={activeProject?.name} />
                     </TabsContent>
+                    <TabsContent value="dashboard" className="mt-4">
+                      <ProjectDashboard onViewCapabilities={switchToCapabilitiesTab} />
+                    </TabsContent>
                   </Tabs>
                 </TabsContent>
               )}
             </Tabs>
+
+            {/* Comparison View - shown when comparison is active */}
+            {isComparisonActive && (
+              <div className="mt-4">
+                <ProjectComparison />
+              </div>
+            )}
           </main>
         </div>
       </TooltipProvider>

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { AppError } from '../types'
 import type { DiffResult } from '../types/comparison'
+import type { ProjectHealth, HealthMetrics } from '../types/health'
 
 // Rust AppError is serialized as { Filesystem: "msg" } | { Permission: "msg" } | { Parse: "msg" }
 interface RustAppError {
@@ -134,6 +135,35 @@ export async function calculateDiff(
 ): Promise<DiffResult[]> {
   try {
     return await invoke<DiffResult[]>('calculate_diff', { leftCapabilities, rightCapabilities })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+// Health check commands (Story 5.4)
+export async function healthCheckProject(projectPath: string): Promise<ProjectHealth> {
+  try {
+    return await invoke<ProjectHealth>('health_check_project', { projectPath })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function calculateHealthMetrics(
+  projects: DiscoveredProject[]
+): Promise<ProjectHealth[]> {
+  try {
+    return await invoke<ProjectHealth[]>('calculate_health_metrics', { projects })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function refreshAllProjectHealth(
+  projects: DiscoveredProject[]
+): Promise<ProjectHealth[]> {
+  try {
+    return await invoke<ProjectHealth[]>('refresh_all_project_health', { projects })
   } catch (error) {
     throw convertRustError(error)
   }

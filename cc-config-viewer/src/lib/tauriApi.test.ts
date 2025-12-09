@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { readConfigFile, parseConfigData, readConfig, parseConfig, watchConfig } from './tauriApi'
+import {
+  readConfigFile,
+  parseConfigData,
+  readConfig,
+  parseConfig,
+  watchConfig,
+  healthCheckProject,
+  calculateHealthMetrics,
+  refreshAllProjectHealth,
+} from './tauriApi'
+import type { ProjectHealth, DiscoveredProject } from './tauriApi'
 
 // Mock the Tauri invoke function
 vi.mock('@tauri-apps/api/core', () => ({
@@ -153,6 +163,223 @@ describe('tauriApi', () => {
         type: 'network',
         message: expect.stringContaining('Network error'),
       })
+    })
+  })
+
+  describe('healthCheckProject', () => {
+    it('should check project health successfully', async () => {
+      const mockHealth: ProjectHealth = {
+        projectId: 'project-1',
+        status: 'good',
+        score: 95,
+        metrics: {
+          totalCapabilities: 10,
+          validConfigs: 10,
+          invalidConfigs: 0,
+          warnings: 0,
+          errors: 0,
+          lastChecked: '2024-01-01T00:00:00Z',
+        },
+        issues: [],
+        recommendations: [],
+      }
+      vi.mocked(invoke).mockResolvedValue(mockHealth)
+
+      const result = await healthCheckProject('/path/to/project')
+
+      expect(invoke).toHaveBeenCalledWith('health_check_project', {
+        projectPath: '/path/to/project',
+      })
+      expect(result).toEqual(mockHealth)
+    })
+
+    it('should handle health check errors', async () => {
+      vi.mocked(invoke).mockRejectedValue({ Filesystem: 'Cannot read project' })
+
+      await expect(healthCheckProject('/nonexistent')).rejects.toMatchObject({
+        type: 'filesystem',
+        message: expect.stringContaining('File system error'),
+      })
+    })
+
+    it('should return error status for projects with issues', async () => {
+      const mockHealth: ProjectHealth = {
+        projectId: 'project-2',
+        status: 'error',
+        score: 30,
+        metrics: {
+          totalCapabilities: 10,
+          validConfigs: 5,
+          invalidConfigs: 5,
+          warnings: 3,
+          errors: 2,
+          lastChecked: '2024-01-01T00:00:00Z',
+        },
+        issues: [
+          {
+            id: 'issue-1',
+            type: 'error',
+            severity: 'high',
+            message: 'Invalid configuration',
+            projectId: 'project-2',
+          },
+        ],
+        recommendations: ['Fix invalid configurations'],
+      }
+      vi.mocked(invoke).mockResolvedValue(mockHealth)
+
+      const result = await healthCheckProject('/path/to/broken')
+
+      expect(result.status).toBe('error')
+      expect(result.score).toBe(30)
+      expect(result.issues).toHaveLength(1)
+    })
+  })
+
+  describe('calculateHealthMetrics', () => {
+    it('should calculate health metrics for multiple projects', async () => {
+      const mockProjects: DiscoveredProject[] = [
+        {
+          id: 'project-1',
+          name: 'Project Alpha',
+          path: '/path/to/alpha',
+          config_file_count: 10,
+          last_modified: Math.floor(Date.now() / 1000),
+          config_sources: { user: false, project: true, local: false },
+        },
+        {
+          id: 'project-2',
+          name: 'Project Beta',
+          path: '/path/to/beta',
+          config_file_count: 8,
+          last_modified: Math.floor(Date.now() / 1000),
+          config_sources: { user: false, project: true, local: false },
+        },
+      ]
+
+      const mockHealthResults: ProjectHealth[] = [
+        {
+          projectId: 'project-1',
+          status: 'good',
+          score: 95,
+          metrics: {
+            totalCapabilities: 10,
+            validConfigs: 10,
+            invalidConfigs: 0,
+            warnings: 0,
+            errors: 0,
+            lastChecked: '2024-01-01T00:00:00Z',
+          },
+          issues: [],
+          recommendations: [],
+        },
+        {
+          projectId: 'project-2',
+          status: 'warning',
+          score: 65,
+          metrics: {
+            totalCapabilities: 8,
+            validConfigs: 7,
+            invalidConfigs: 1,
+            warnings: 2,
+            errors: 0,
+            lastChecked: '2024-01-01T00:00:00Z',
+          },
+          issues: [],
+          recommendations: [],
+        },
+      ]
+
+      vi.mocked(invoke).mockResolvedValue(mockHealthResults)
+
+      const result = await calculateHealthMetrics(mockProjects)
+
+      expect(invoke).toHaveBeenCalledWith('calculate_health_metrics', {
+        projects: mockProjects,
+      })
+      expect(result).toHaveLength(2)
+      expect(result[0].projectId).toBe('project-1')
+      expect(result[1].projectId).toBe('project-2')
+    })
+
+    it('should handle errors during metrics calculation', async () => {
+      vi.mocked(invoke).mockRejectedValue({ Permission: 'Access denied' })
+
+      await expect(
+        calculateHealthMetrics([
+          {
+            id: 'test',
+            name: 'Test',
+            path: '/test',
+            config_file_count: 1,
+            last_modified: Date.now(),
+            config_sources: { user: false, project: true, local: false },
+          },
+        ])
+      ).rejects.toMatchObject({
+        type: 'permission',
+        message: expect.stringContaining('Permission denied'),
+      })
+    })
+  })
+
+  describe('refreshAllProjectHealth', () => {
+    it('should refresh health for all projects', async () => {
+      const mockProjects: DiscoveredProject[] = [
+        {
+          id: 'project-1',
+          name: 'Project Alpha',
+          path: '/path/to/alpha',
+          config_file_count: 10,
+          last_modified: Math.floor(Date.now() / 1000),
+          config_sources: { user: false, project: true, local: false },
+        },
+      ]
+
+      const mockHealthResults: ProjectHealth[] = [
+        {
+          projectId: 'project-1',
+          status: 'good',
+          score: 98,
+          metrics: {
+            totalCapabilities: 10,
+            validConfigs: 10,
+            invalidConfigs: 0,
+            warnings: 0,
+            errors: 0,
+            lastChecked: '2024-01-02T00:00:00Z',
+          },
+          issues: [],
+          recommendations: [],
+        },
+      ]
+
+      vi.mocked(invoke).mockResolvedValue(mockHealthResults)
+
+      const result = await refreshAllProjectHealth(mockProjects)
+
+      expect(invoke).toHaveBeenCalledWith('refresh_all_project_health', {
+        projects: mockProjects,
+      })
+      expect(result).toHaveLength(1)
+      expect(result[0].score).toBe(98)
+    })
+
+    it('should handle network errors during refresh', async () => {
+      vi.mocked(invoke).mockRejectedValue({ Network: 'Connection timeout' })
+
+      await expect(refreshAllProjectHealth([])).rejects.toMatchObject({
+        type: 'network',
+        message: expect.stringContaining('Network error'),
+      })
+    })
+
+    it('should return empty array for empty project list', async () => {
+      vi.mocked(invoke).mockResolvedValue([])
+
+      const result = await refreshAllProjectHealth([])
+
+      expect(result).toHaveLength(0)
     })
   })
 })

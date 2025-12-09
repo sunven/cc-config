@@ -4,6 +4,9 @@ import {
   calculateBatchHealth,
   filterByHealthStatus,
   sortByHealthScore,
+  benchmarkHealthCalculation,
+  calculateProjectHealthMemoized,
+  clearHealthCache,
 } from './healthChecker'
 import type { DiscoveredProject } from '../types/project'
 import type { ProjectHealth } from '../types/health'
@@ -388,6 +391,87 @@ describe('HealthChecker', () => {
       expect(sorted[1].score).toBe(75)
       expect(sorted[2].projectId).toBe('p1')
       expect(sorted[2].score).toBe(60)
+    })
+  })
+
+  describe('Performance Optimization (Task 9.1)', () => {
+    it('calculates health for single project in <50ms', () => {
+      const project: DiscoveredProject = {
+        id: 'perf-test',
+        name: 'Performance Test Project',
+        path: '/test/perf',
+        configFileCount: 10,
+        lastModified: 1000000000,
+        configSources: { user: true, project: true, local: false },
+      }
+
+      const capabilities: Capability[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `cap${i}`,
+        key: `setting${i}`,
+        value: i % 3 === 0 ? null : i % 3 === 1 ? `value${i}` : 'invalid',
+        source: 'project',
+      }))
+
+      const result = benchmarkHealthCalculation(project, capabilities, 100)
+
+      // Performance target: <50ms per project
+      expect(result.average).toBeLessThan(50)
+      expect(result.max).toBeLessThan(100)
+    })
+
+    it('calculates batch health for 10 projects in <200ms', () => {
+      const projects: DiscoveredProject[] = Array.from({ length: 10 }, (_, i) => ({
+        id: `project-${i}`,
+        name: `Project ${i}`,
+        path: `/test/${i}`,
+        configFileCount: 5,
+        lastModified: 1000000000,
+        configSources: { user: true, project: true, local: false },
+      }))
+
+      const capabilities: Capability[] = Array.from({ length: 10 }, (_, i) => ({
+        id: `cap${i}`,
+        key: `setting${i}`,
+        value: `value${i}`,
+        source: 'project',
+      }))
+
+      const projectCapabilities = new Map<string, Capability[]>()
+      projects.forEach((project) => {
+        projectCapabilities.set(project.id, capabilities)
+      })
+
+      const start = performance.now()
+      const healthResults = calculateBatchHealth(projects, projectCapabilities)
+      const end = performance.now()
+
+      expect(healthResults).toHaveLength(10)
+      // Performance target: <200ms for batch of 10
+      expect(end - start).toBeLessThan(200)
+    })
+
+    it('memoized calculation returns cached result', () => {
+      const project: DiscoveredProject = {
+        id: 'memo-test',
+        name: 'Memo Test',
+        path: '/test/memo',
+        configFileCount: 3,
+        lastModified: 1000000000,
+        configSources: { user: true, project: true, local: false },
+      }
+
+      const capabilities: Capability[] = [
+        { id: 'cap1', key: 'setting1', value: 'value1', source: 'project' },
+        { id: 'cap2', key: 'setting2', value: 'value2', source: 'project' },
+      ]
+
+      clearHealthCache()
+
+      const health1 = calculateProjectHealthMemoized(project, capabilities)
+      const health2 = calculateProjectHealthMemoized(project, capabilities)
+
+      expect(health1).toEqual(health2)
+      expect(health1).not.toBe(health2) // Different objects
     })
   })
 })

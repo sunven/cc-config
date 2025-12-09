@@ -1,8 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ProjectHealthCard } from './ProjectHealthCard'
+import { SourceIndicator } from './SourceIndicator'
 import type { DiscoveredProject } from '../types/project'
 import type { ProjectHealth } from '../types/health'
+
+// Mock SourceIndicator
+vi.mock('./SourceIndicator', () => ({
+  SourceIndicator: ({ sourceType }: { sourceType: string }) => (
+    <div data-testid="source-indicator">{sourceType}</div>
+  ),
+}))
 
 describe('ProjectHealthCard', () => {
   const mockProject: DiscoveredProject = {
@@ -264,5 +272,73 @@ describe('ProjectHealthCard', () => {
     render(<ProjectHealthCard project={mockProject} health={mockHealth} />)
 
     expect(screen.getByText('3/3 valid')).toBeInTheDocument()
+  })
+
+  it('displays configuration sources with source indicators', () => {
+    render(<ProjectHealthCard project={mockProject} health={mockHealth} />)
+
+    // Check for the Configuration Sources section
+    expect(screen.getByText('Configuration Sources')).toBeInTheDocument()
+
+    // Check that source indicators are rendered for user and project sources
+    const sourceIndicators = screen.getAllByTestId('source-indicator')
+    expect(sourceIndicators).toHaveLength(2)
+    expect(sourceIndicators[0]).toHaveTextContent('user')
+    expect(sourceIndicators[1]).toHaveTextContent('project')
+  })
+
+  it('shows inherited source indicator when local is true', () => {
+    const projectWithInherited = {
+      ...mockProject,
+      configSources: {
+        user: false,
+        project: false,
+        local: true,
+      },
+    }
+
+    render(<ProjectHealthCard project={projectWithInherited} />)
+
+    const sourceIndicators = screen.getAllByTestId('source-indicator')
+    expect(sourceIndicators).toHaveLength(1)
+    expect(sourceIndicators[0]).toHaveTextContent('inherited')
+  })
+
+  it('shows all three source indicators when all sources are present', () => {
+    const projectWithAllSources = {
+      ...mockProject,
+      configSources: {
+        user: true,
+        project: true,
+        local: true,
+      },
+    }
+
+    render(<ProjectHealthCard project={projectWithAllSources} />)
+
+    const sourceIndicators = screen.getAllByTestId('source-indicator')
+    expect(sourceIndicators).toHaveLength(3)
+    expect(sourceIndicators[0]).toHaveTextContent('user')
+    expect(sourceIndicators[1]).toHaveTextContent('project')
+    expect(sourceIndicators[2]).toHaveTextContent('inherited')
+  })
+
+  it('does not show source indicators when no sources are configured', () => {
+    const projectWithNoSources = {
+      ...mockProject,
+      configSources: {
+        user: false,
+        project: false,
+        local: false,
+      },
+    }
+
+    render(<ProjectHealthCard project={projectWithNoSources} />)
+
+    // Section header should still be present
+    expect(screen.getByText('Configuration Sources')).toBeInTheDocument()
+
+    // But no source indicators should be rendered
+    expect(screen.queryAllByTestId('source-indicator')).toHaveLength(0)
   })
 })
