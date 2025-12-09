@@ -4,7 +4,9 @@ import type { SourceLocation } from '../types/trace'
 import type { InheritanceStats } from '../utils/statsCalculator'
 import type { InheritanceStatsState } from '../types/inheritance-summary'
 import type { McpServer } from '../types/mcp'
+import type { Agent, AgentFilterState, AgentSortState } from '../types/agent'
 import { readAndParseConfig, extractAllEntries, mergeConfigs, parseMcpServers } from '../lib/configParser'
+import { parseAgents } from '../lib/agentParser'
 import { calculateInheritance } from '../lib/inheritanceCalculator'
 import { calculateStats } from '../utils/statsCalculator'
 
@@ -46,6 +48,14 @@ interface ConfigStore {
   }
   mcpStatusRefreshInterval: number | null
 
+  // Agents for Story 4.2
+  agents: Agent[]
+  agentsByScope: {
+    user: Agent[]
+    project: Agent[]
+    local: Agent[]
+  }
+
   // Loading states - only for initial load, not for cached switches
   isInitialLoading: boolean
   isBackgroundLoading: boolean
@@ -84,6 +94,11 @@ interface ConfigStore {
   startMcpStatusRefresh: () => void
   stopMcpStatusRefresh: () => void
 
+  // Agent actions for Story 4.2
+  updateAgents: () => Promise<void>
+  filterAgents: (filters: AgentFilterState) => Agent[]
+  sortAgents: (agents: Agent[], sort: AgentSortState) => Agent[]
+
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
   updateConfig: (key: string, value: any, sourceType: 'user' | 'project' | 'local') => void
@@ -118,6 +133,12 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     local: []
   },
   mcpStatusRefreshInterval: null,
+  agents: [],
+  agentsByScope: {
+    user: [],
+    project: [],
+    local: []
+  },
   isInitialLoading: true,
   isBackgroundLoading: false,
   isLoading: true, // Legacy alias - same as isInitialLoading
@@ -412,6 +433,12 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         local: []
       },
       mcpStatusRefreshInterval: null,
+      agents: [],
+      agentsByScope: {
+        user: [],
+        project: [],
+        local: []
+      },
       error: null,
       isInitialLoading: false,
       isLoading: false,
@@ -682,6 +709,109 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         case 'source':
           aValue = a.sourcePath
           bValue = b.sourcePath
+          break
+        default:
+          return 0
+      }
+
+      const comparison = aValue.localeCompare(bValue)
+      return sort.direction === 'asc' ? comparison : -comparison
+    })
+  },
+
+  // Agent actions for Story 4.2
+  updateAgents: async () => {
+    try {
+      const { userAgents, projectAgents, inheritedAgents } = await parseAgents()
+
+      set({
+        agents: [...userAgents, ...projectAgents],
+        agentsByScope: {
+          user: userAgents,
+          project: projectAgents,
+          local: inheritedAgents
+        }
+      })
+    } catch (error) {
+      console.error('[configStore] Failed to update agents:', error)
+      set({
+        error: `Failed to update agents: ${error instanceof Error ? error.message : 'Unknown error'}`
+      })
+      // Don't throw - agents are optional
+    }
+  },
+
+  filterAgents: (filters) => {
+    const state = get()
+    let filtered = [...state.agents]
+
+    if (filters.source) {
+      filtered = filtered.filter(agent => {
+        // User-level: ~/.claude/agents/*.md (absolute path, not starting with ./)
+        const isUser = agent.sourcePath.includes('.claude/agents/') && !agent.sourcePath.startsWith('./')
+        // Project-level: ./.claude/agents/*.md (relative path starting with ./)
+        const isProject = agent.sourcePath.startsWith('./')
+        // Local/inherited (any other path)
+        const isLocal = !isUser && !isProject
+
+        switch (filters.source) {
+          case 'user':
+            return isUser
+          case 'project':
+            return isProject
+          case 'local':
+            return isLocal
+          default:
+            return true
+        }
+      })
+    }
+
+    if (filters.permissions) {
+      filtered = filtered.filter(agent => agent.permissions.type === filters.permissions)
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter(agent => agent.status === filters.status)
+    }
+
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase()
+      filtered = filtered.filter(agent =>
+        agent.name.toLowerCase().includes(query) ||
+        agent.description?.toLowerCase().includes(query) ||
+        agent.permissions.type.toLowerCase().includes(query)
+      )
+    }
+
+    return filtered
+  },
+
+  sortAgents: (agents, sort) => {
+    return [...agents].sort((a, b) => {
+      let aValue: string
+      let bValue: string
+
+      switch (sort.field) {
+        case 'name':
+          aValue = a.name
+          bValue = b.name
+          break
+        case 'permissions':
+          aValue = a.permissions.type
+          bValue = b.permissions.type
+          break
+        case 'status':
+          aValue = a.status
+          bValue = b.status
+          break
+        case 'source':
+          aValue = a.sourcePath
+          bValue = b.sourcePath
+          break
+        case 'lastModified':
+          aValue = a.lastModified?.toISOString() || ''
+          bValue = b.lastModified?.toISOString() || ''
           break
         default:
           return 0

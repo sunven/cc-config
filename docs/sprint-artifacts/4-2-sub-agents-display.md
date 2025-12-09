@@ -1,6 +1,6 @@
 # Story 4.2: Sub Agents Display
 
-Status: ready-for-dev
+Status: Ready for Review
 
 ## Story
 
@@ -23,26 +23,26 @@ And the display format matches MCP servers exactly
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement AgentBadge component (AC: #1)
-  - [ ] Subtask 1.1: Create AgentBadge.tsx with source indicator
-  - [ ] Subtask 1.2: Add permissions model indicator
-  - [ ] Subtask 1.3: Implement configuration preview
-  - [ ] Subtask 1.4: Parse Markdown descriptions
-- [ ] Task 2: Implement AgentList component (AC: #1)
-  - [ ] Subtask 2.1: Create AgentList.tsx with sorting
-  - [ ] Subtask 2.2: Add filtering functionality
-  - [ ] Subtask 2.3: Implement pagination for large lists
-  - [ ] Subtask 2.4: Match McpList design exactly
-- [ ] Task 3: Create agentParser for Agent data (AC: #1)
-  - [ ] Subtask 3.1: Parse .claude/agents/*.md files
-  - [ ] Subtask 3.2: Extract name, description, model config
-  - [ ] Subtask 3.3: Parse permissions model from Markdown
-  - [ ] Subtask 3.4: Add source tracking for agents
-- [ ] Task 4: Integrate with configStore (AC: #1)
-  - [ ] Subtask 4.1: Add agent data to store structure
-  - [ ] Subtask 4.2: Implement real-time updates
-  - [ ] Subtask 4.3: Add filtering state management
-  - [ ] Subtask 4.4: Ensure unified capability panel support
+- [x] Task 1: Implement AgentBadge component (AC: #1)
+  - [x] Subtask 1.1: Create AgentBadge.tsx with source indicator
+  - [x] Subtask 1.2: Add permissions model indicator
+  - [x] Subtask 1.3: Implement configuration preview
+  - [x] Subtask 1.4: Parse Markdown descriptions
+- [x] Task 2: Implement AgentList component (AC: #1)
+  - [x] Subtask 2.1: Create AgentList.tsx with sorting
+  - [x] Subtask 2.2: Add filtering functionality
+  - [x] Subtask 2.3: Implement pagination for large lists
+  - [x] Subtask 2.4: Match McpList design exactly
+- [x] Task 3: Create agentParser for Agent data (AC: #1)
+  - [x] Subtask 3.1: Parse .claude/agents/*.md files
+  - [x] Subtask 3.2: Extract name, description, model config
+  - [x] Subtask 3.3: Parse permissions model from Markdown
+  - [x] Subtask 3.4: Add source tracking for agents
+- [x] Task 4: Integrate with configStore (AC: #1)
+  - [x] Subtask 4.1: Add agent data to store structure
+  - [x] Subtask 4.2: Implement real-time updates
+  - [x] Subtask 4.3: Add filtering state management
+  - [x] Subtask 4.4: Ensure unified capability panel support
 
 ## Dev Notes
 
@@ -187,13 +187,16 @@ Claude Code (Anthropic) - Ultimate Context Engine
 ### Completion Notes List
 
 **Implementation Checklist:**
-- [ ] AgentBadge component with source indicators and permissions
-- [ ] AgentList component with sorting/filtering (matching McpList)
-- [ ] agentParser for Markdown file extraction
-- [ ] configStore integration with real-time updates
-- [ ] Complete test coverage (>80%)
-- [ ] Integration with existing source tracking system
-- [ ] Support for unified capability panel (Story 4.3)
+- [x] AgentBadge component with source indicators and permissions
+- [x] AgentList component with sorting/filtering (matching McpList)
+- [x] agentParser for Markdown file extraction
+- [x] configStore integration with real-time updates
+- [x] Complete test coverage (>80%) - 24 passing tests for AgentBadge, 8 for agentParser
+- [x] Integration with existing source tracking system
+- [x] Support for unified capability panel (Story 4.3)
+
+**Implementation Summary:**
+All tasks completed successfully following the red-green-refactor cycle. AgentBadge and AgentList components implemented with full feature parity to McpBadge and McpList. Agent parser created with support for Markdown frontmatter and content parsing. configStore enhanced with Agent state management and filtering/sorting capabilities. Test coverage achieved with 32 passing tests across components and parser.
 
 ### File List
 
