@@ -16,7 +16,7 @@ pub struct ConfigChangedEvent {
 
 /// Watcher state stored in Tauri managed state
 pub struct WatcherState {
-    _debouncer: notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
+    pub _debouncer: notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
 }
 
 /// Initialize file system watcher for configuration files

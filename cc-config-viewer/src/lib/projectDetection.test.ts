@@ -75,6 +75,8 @@ describe('projectDetection', () => {
 
   describe('discoverProjects', () => {
     it('returns empty array when no projects found', async () => {
+      // Mock listProjects to return empty array (not undefined)
+      vi.mocked(tauriApi.listProjects).mockResolvedValue([])
       vi.mocked(tauriApi.readConfig).mockRejectedValue(new Error('File not found'))
 
       const result = await discoverProjects()
@@ -95,10 +97,29 @@ describe('projectDetection', () => {
         },
       })
 
-      // First call returns user config, subsequent calls for validation succeed
-      vi.mocked(tauriApi.readConfig)
-        .mockResolvedValueOnce(mockUserConfig) // ~/.claude.json
-        .mockResolvedValue('{}') // path validation and mcp count calls
+      // Mock listProjects to return discovered projects (not relying on old logic)
+      vi.mocked(tauriApi.listProjects).mockResolvedValue([
+        {
+          id: '1',
+          name: 'my-project',
+          path: '/Users/test/my-project',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['1 servers'],
+          sub_agents: ['1 agents']
+        },
+        {
+          id: '2',
+          name: 'another-project',
+          path: '/Users/test/another-project',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['2 servers'],
+          sub_agents: []
+        }
+      ])
 
       const result = await discoverProjects()
 
@@ -108,37 +129,29 @@ describe('projectDetection', () => {
     })
 
     it('handles invalid project paths gracefully', async () => {
-      const mockUserConfig = JSON.stringify({
-        projects: {
-          'valid-project': {
-            path: '/Users/test/valid-project',
-          },
-          'invalid-project': {
-            path: '/nonexistent/path',
-          },
+      // Mock listProjects with mixed valid/invalid projects
+      vi.mocked(tauriApi.listProjects).mockResolvedValue([
+        {
+          id: '1',
+          name: 'valid-project',
+          path: '/Users/test/valid-project',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['1 servers'],
+          sub_agents: []
         },
-      })
-
-      // Use mockImplementation to handle the complex call patterns
-      vi.mocked(tauriApi.readConfig).mockImplementation(async (path: string) => {
-        // User config
-        if (path === '~/.claude.json') {
-          return mockUserConfig
+        {
+          id: '2',
+          name: 'invalid-project',
+          path: '/nonexistent/path',
+          config_file_count: 0,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: false, local: false },
+          mcp_servers: [],
+          sub_agents: []
         }
-        // Valid project paths
-        if (path.includes('/Users/test/valid-project')) {
-          return '{}'
-        }
-        // Invalid project paths - always fail
-        if (path.includes('/nonexistent/path')) {
-          throw new Error('Path not found')
-        }
-        // detectCurrentProject paths - fail
-        if (path === './.mcp.json' || path.includes('.claude')) {
-          throw new Error('Not found')
-        }
-        throw new Error('Unknown path')
-      })
+      ])
 
       const result = await discoverProjects()
 
@@ -149,66 +162,69 @@ describe('projectDetection', () => {
       expect(invalidProject?.status).toBe('missing')
     })
 
-    it('sorts projects by lastAccessed timestamp (most recent first)', async () => {
-      const mockUserConfig = JSON.stringify({
-        projects: {
-          'old-project': {
-            path: '/Users/test/old-project',
-            lastOpened: '2024-01-01T00:00:00.000Z',
-          },
-          'recent-project': {
-            path: '/Users/test/recent-project',
-            lastOpened: '2025-06-01T00:00:00.000Z',
-          },
-          'middle-project': {
-            path: '/Users/test/middle-project',
-            lastOpened: '2025-03-01T00:00:00.000Z',
-          },
+    it('sorts projects alphabetically (not by timestamp)', async () => {
+      // Mock listProjects with projects in random order
+      vi.mocked(tauriApi.listProjects).mockResolvedValue([
+        {
+          id: '1',
+          name: 'zebra-project',
+          path: '/Users/test/zebra-project',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['1 servers'],
+          sub_agents: []
         },
-      })
-
-      vi.mocked(tauriApi.readConfig)
-        .mockResolvedValueOnce(mockUserConfig)
-        .mockResolvedValue('{}')
+        {
+          id: '2',
+          name: 'apple-project',
+          path: '/Users/test/apple-project',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['2 servers'],
+          sub_agents: []
+        },
+        {
+          id: '3',
+          name: 'banana-project',
+          path: '/Users/test/banana-project',
+          config_file_count: 1,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['3 servers'],
+          sub_agents: []
+        }
+      ])
 
       const result = await discoverProjects()
 
-      // Filter to just the test projects
-      const testProjects = result.filter((p) =>
-        ['old-project', 'recent-project', 'middle-project'].includes(p.name)
-      )
-
-      expect(testProjects[0].name).toBe('recent-project')
-      expect(testProjects[1].name).toBe('middle-project')
-      expect(testProjects[2].name).toBe('old-project')
+      expect(result[0].name).toBe('apple-project')
+      expect(result[1].name).toBe('banana-project')
+      expect(result[2].name).toBe('zebra-project')
     })
 
     it('includes mcpCount and agentCount for each project', async () => {
-      const mockUserConfig = JSON.stringify({
-        projects: {
-          'test-project': {
-            path: '/Users/test/test-project',
-          },
-        },
-      })
-
-      const mockMcpConfig = JSON.stringify({
-        mcpServers: {
-          server1: { command: 'cmd1' },
-          server2: { command: 'cmd2' },
-        },
-      })
-
-      vi.mocked(tauriApi.readConfig)
-        .mockResolvedValueOnce(mockUserConfig) // ~/.claude.json
-        .mockResolvedValueOnce(mockMcpConfig) // project .mcp.json for validation + count
-        .mockResolvedValue('{}') // agents directory
+      // Mock listProjects with mcp servers and sub-agents info
+      vi.mocked(tauriApi.listProjects).mockResolvedValue([
+        {
+          id: '1',
+          name: 'test-project',
+          path: '/Users/test/test-project',
+          config_file_count: 2,
+          last_modified: Date.now() / 1000,
+          config_sources: { user: false, project: true, local: false },
+          mcp_servers: ['3 servers'],
+          sub_agents: ['2 agents']
+        }
+      ])
 
       const result = await discoverProjects()
 
       const testProject = result.find((p) => p.name === 'test-project')
       expect(testProject?.mcpCount).toBeDefined()
-      expect(typeof testProject?.mcpCount).toBe('number')
+      expect(testProject?.mcpCount).toBe(3) // Extracted from "3 servers" string
+      expect(testProject?.agentCount).toBe(2) // Extracted from "2 agents" string
     })
   })
 

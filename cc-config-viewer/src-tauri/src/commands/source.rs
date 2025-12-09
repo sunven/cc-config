@@ -5,9 +5,8 @@
 
 use crate::types::app::AppError;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Seek, SeekFrom};
+use std::io::{BufRead, BufReader};
 
 /// Represents the location where a configuration item was defined
 #[derive(Debug, Serialize, Deserialize)]

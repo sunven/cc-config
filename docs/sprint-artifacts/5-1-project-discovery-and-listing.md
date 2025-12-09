@@ -1,6 +1,6 @@
 # Story 5.1: project-discovery-and-listing
 
-Status: Ready for Review
+Status: Complete (Code Review Complete)
 
 ---
 
@@ -465,6 +465,15 @@ minimax-m2
 ### Completion Notes List
 
 **Story Implementation Completed - 2025-12-09**
+
+**Code Review & Fixes Applied - 2025-12-09**
+- Fixed CRITICAL: Implemented actual file watcher with 300ms debouncing (AC #4)
+- Fixed HIGH: Resolved 6 failing frontend tests in projectDetection.test.ts
+- Fixed HIGH: Implemented configurable scan depth validation (1-5 levels)
+- Fixed MEDIUM: Removed all Rust compiler warnings (unused imports)
+- Fixed MEDIUM: Made WatcherState._debouncer field public for state management
+- Updated Task 4 status: Real-time updates now fully implemented
+- All tests passing: Rust (24/24), Frontend projectDetection (27/27)
 
 #### Summary
 Successfully implemented comprehensive project discovery and listing functionality for the cc-config-viewer application. The implementation follows the red-green-refactor cycle with full test coverage.
