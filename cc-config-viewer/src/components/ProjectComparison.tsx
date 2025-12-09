@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useProjectsStore } from '../stores/projectsStore'
 import { ComparisonPanel } from './ComparisonPanel'
+import { SummaryBadge } from './SummaryBadge'
+import { FilterControls } from './FilterControls'
 import { Button } from './ui/button'
 import { X, GitCompare } from 'lucide-react'
+import { filterDifferences } from '../lib/highlightEngine'
 import type { DiscoveredProject } from '../types/project'
 
 interface ProjectComparisonProps {
@@ -18,9 +21,17 @@ export function ProjectComparison({ className }: ProjectComparisonProps) {
     comparison,
     clearComparison,
     calculateDiff,
+    categorizeDifferences,
+    calculateSummaryStats,
   } = useProjectsStore()
 
-  const { leftProject, rightProject, isComparing, diffResults } = comparison
+  const { leftProject, rightProject, isComparing, diffResults, highlighting } = comparison
+  const filters = highlighting?.filters || {
+    showOnlyDifferences: false,
+    showBlueOnly: true,
+    showGreenOnly: true,
+    showYellowOnly: true,
+  }
 
   // Auto-calculate diff when projects are set
   useEffect(() => {
@@ -28,6 +39,20 @@ export function ProjectComparison({ className }: ProjectComparisonProps) {
       calculateDiff()
     }
   }, [leftProject, rightProject, calculateDiff])
+
+  // Categorize differences and calculate summary stats when diffResults change
+  useEffect(() => {
+    if (diffResults.length > 0 && highlighting) {
+      categorizeDifferences()
+      calculateSummaryStats()
+    }
+  }, [diffResults, highlighting, categorizeDifferences, calculateSummaryStats])
+
+  // Filter diff results based on current filters
+  const filteredDiffResults = useMemo(() => {
+    if (diffResults.length === 0) return diffResults
+    return filterDifferences(diffResults, filters)
+  }, [diffResults, filters])
 
   if (!isComparing || !leftProject || !rightProject) {
     return (
@@ -44,14 +69,20 @@ export function ProjectComparison({ className }: ProjectComparisonProps) {
     <div className={`flex flex-col h-full ${className || ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center space-x-2">
-          <GitCompare className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Project Comparison</h2>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <GitCompare className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Project Comparison</h2>
+          </div>
+          {highlighting && <SummaryBadge />}
         </div>
-        <Button variant="ghost" size="sm" onClick={clearComparison}>
-          <X className="h-4 w-4 mr-1" />
-          Exit Comparison
-        </Button>
+        <div className="flex items-center space-x-2">
+          {highlighting && <FilterControls />}
+          <Button variant="ghost" size="sm" onClick={clearComparison}>
+            <X className="h-4 w-4 mr-1" />
+            Exit Comparison
+          </Button>
+        </div>
       </div>
 
       {/* Split View */}
@@ -59,7 +90,7 @@ export function ProjectComparison({ className }: ProjectComparisonProps) {
         {/* Left Panel */}
         <ComparisonPanel
           project={leftProject}
-          diffResults={diffResults.filter((d) => d.leftValue?.id === d.capabilityId)}
+          diffResults={filteredDiffResults.filter((d) => d.leftValue?.id === d.capabilityId)}
           side="left"
           className="flex-1"
         />
@@ -67,51 +98,12 @@ export function ProjectComparison({ className }: ProjectComparisonProps) {
         {/* Right Panel */}
         <ComparisonPanel
           project={rightProject}
-          diffResults={diffResults.filter((d) => d.rightValue?.id === d.capabilityId)}
+          diffResults={filteredDiffResults.filter((d) => d.rightValue?.id === d.capabilityId)}
           side="right"
           className="flex-1"
         />
       </div>
 
-      {/* Summary Footer */}
-      {diffResults.length > 0 && (
-        <div className="p-4 border-t bg-muted/50">
-          <ComparisonSummary diffResults={diffResults} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Summary component showing comparison statistics
- */
-function ComparisonSummary({ diffResults }: { diffResults: any[] }) {
-  const matches = diffResults.filter((d) => d.status === 'match').length
-  const differences = diffResults.filter((d) => d.status === 'different').length
-  const onlyLeft = diffResults.filter((d) => d.status === 'only-left').length
-  const onlyRight = diffResults.filter((d) => d.status === 'only-right').length
-  const total = diffResults.length
-
-  return (
-    <div className="flex items-center justify-center space-x-6 text-sm">
-      <div className="flex items-center space-x-2">
-        <div className="w-3 h-3 rounded-full bg-green-500" />
-        <span>{matches} matches</span>
       </div>
-      <div className="flex items-center space-x-2">
-        <div className="w-3 h-3 rounded-full bg-yellow-500" />
-        <span>{differences} differences</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <div className="w-3 h-3 rounded-full bg-blue-500" />
-        <span>{onlyLeft} only in left</span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <div className="w-3 h-3 rounded-full bg-purple-500" />
-        <span>{onlyRight} only in right</span>
-      </div>
-      <div className="text-muted-foreground">Total: {total} capabilities</div>
-    </div>
   )
 }

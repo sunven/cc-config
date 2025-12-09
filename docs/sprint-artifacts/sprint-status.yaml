@@ -84,7 +84,7 @@ development_status:
   epic-5: in-progress
   5-1-project-discovery-and-listing: done
   5-2-side-by-side-comparison-view: done
-  5-3-difference-highlighting: ready-for-dev
+  5-3-difference-highlighting: review
   5-4-project-health-dashboard: backlog
   5-5-configuration-export: backlog
   epic-5-retrospective: optional

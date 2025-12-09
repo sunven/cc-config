@@ -707,4 +707,147 @@ describe('Zustand Stores', () => {
       expect(result.current.isLoading).toBe(false)
     })
   })
+
+  describe('ProjectsStore - Highlighting (Story 5.3)', () => {
+    beforeEach(() => {
+      // Reset ProjectsStore state
+      useProjectsStore.setState({
+        projects: [],
+        activeProject: null,
+        projectConfigsCache: {},
+        isLoadingProjects: false,
+        projectsError: null,
+        sortOrder: 'recency',
+        comparison: {
+          leftProject: null,
+          rightProject: null,
+          isComparing: false,
+          diffResults: [],
+          comparisonMode: 'capabilities',
+          highlighting: {
+            diffResults: [],
+            filters: {
+              showOnlyDifferences: false,
+              showBlueOnly: true,
+              showGreenOnly: true,
+              showYellowOnly: true,
+            },
+            summary: {
+              totalDifferences: 0,
+              onlyInA: 0,
+              onlyInB: 0,
+              differentValues: 0,
+            },
+          },
+        },
+      })
+    })
+
+    it('should initialize with default highlighting state', () => {
+      const { result } = renderHook(() => useProjectsStore())
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(false)
+      expect(result.current.comparison.highlighting.filters.showBlueOnly).toBe(true)
+      expect(result.current.comparison.highlighting.filters.showGreenOnly).toBe(true)
+      expect(result.current.comparison.highlighting.filters.showYellowOnly).toBe(true)
+      expect(result.current.comparison.highlighting.summary.totalDifferences).toBe(0)
+    })
+
+    it('should set highlight filters correctly', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      act(() => {
+        result.current.setHighlightFilters({
+          showOnlyDifferences: true,
+          showBlueOnly: false,
+        })
+      })
+
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(true)
+      expect(result.current.comparison.highlighting.filters.showBlueOnly).toBe(false)
+      // Other filters should remain unchanged
+      expect(result.current.comparison.highlighting.filters.showGreenOnly).toBe(true)
+    })
+
+    it('should toggle difference filter', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(false)
+
+      act(() => {
+        result.current.toggleDifferenceFilter()
+      })
+
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(true)
+
+      act(() => {
+        result.current.toggleDifferenceFilter()
+      })
+
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(false)
+    })
+
+    it('should update highlighting state on categorizeDifferences', async () => {
+      const mockCategorizedDiffs = [
+        {
+          capabilityId: 'cap1',
+          status: 'only-left' as const,
+          severity: 'medium' as const,
+          highlightClass: 'bg-blue-100 text-blue-800',
+        },
+      ]
+
+      // Mock the Tauri invoke function
+      vi.doMock('@tauri-apps/api/core', async () => {
+        const actual = await vi.importActual('@tauri-apps/api/core')
+        return {
+          ...actual,
+          invoke: vi.fn().mockResolvedValue(mockCategorizedDiffs),
+        }
+      })
+
+      const { result } = renderHook(() => useProjectsStore())
+
+      // Set some diff results
+      act(() => {
+        useProjectsStore.setState((state) => ({
+          comparison: {
+            ...state.comparison,
+            diffResults: [{ capabilityId: 'cap1', status: 'only-left' as const, severity: 'medium' as const }],
+          },
+        }))
+      })
+
+      await act(async () => {
+        await result.current.categorizeDifferences()
+      })
+
+      expect(result.current.comparison.highlighting.diffResults).toEqual(mockCategorizedDiffs)
+    })
+
+    it('should clear highlighting state on clearComparison', () => {
+      const { result } = renderHook(() => useProjectsStore())
+
+      // Set some highlighting state
+      act(() => {
+        result.current.setHighlightFilters({
+          showOnlyDifferences: true,
+          showBlueOnly: false,
+        })
+      })
+
+      // Verify state is set
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(true)
+
+      // Clear comparison
+      act(() => {
+        result.current.clearComparison()
+      })
+
+      // Verify highlighting state is reset
+      expect(result.current.comparison.highlighting.filters.showOnlyDifferences).toBe(false)
+      expect(result.current.comparison.highlighting.filters.showBlueOnly).toBe(true)
+      expect(result.current.comparison.highlighting.summary.totalDifferences).toBe(0)
+      expect(result.current.comparison.highlighting.diffResults).toEqual([])
+    })
+  })
 })

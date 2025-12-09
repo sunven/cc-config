@@ -1,7 +1,13 @@
 import { create } from 'zustand'
 import type { Project, ProjectSummary, DiscoveredProject } from '../types/project'
 import type { ConfigEntry } from '../types'
-import type { ComparisonView, DiffResult } from '../types/comparison'
+import type {
+  ComparisonView,
+  DiffResult,
+  HighlightFilters,
+  SummaryStats,
+  DifferenceHighlighting,
+} from '../types/comparison'
 import { discoverProjects } from '../lib/projectDetection'
 
 // Cache entry with timestamp
@@ -35,6 +41,13 @@ interface ProjectsStore {
     isComparing: boolean
     diffResults: DiffResult[]
     comparisonMode: 'capabilities' | 'settings' | 'all'
+
+    // Story 5.3 - Highlighting state
+    highlighting: {
+      diffResults: DiffResult[] // Extended with highlightClass
+      filters: HighlightFilters
+      summary: SummaryStats
+    }
   }
 
   // Actions
@@ -58,6 +71,12 @@ interface ProjectsStore {
   setComparisonProjects: (left: DiscoveredProject, right: DiscoveredProject) => void
   calculateDiff: () => Promise<void>
   clearComparison: () => void
+
+  // Story 5.3 - Highlighting actions
+  setHighlightFilters: (filters: Partial<HighlightFilters>) => void
+  calculateSummaryStats: () => Promise<void>
+  toggleDifferenceFilter: () => void
+  categorizeDifferences: () => Promise<void>
 }
 
 // Load persisted lastAccessed timestamps from localStorage
@@ -98,6 +117,23 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => ({
     isComparing: false,
     diffResults: [],
     comparisonMode: 'capabilities',
+
+    // Story 5.3 - Highlighting state
+    highlighting: {
+      diffResults: [],
+      filters: {
+        showOnlyDifferences: false,
+        showBlueOnly: true,
+        showGreenOnly: true,
+        showYellowOnly: true,
+      },
+      summary: {
+        totalDifferences: 0,
+        onlyInA: 0,
+        onlyInB: 0,
+        differentValues: 0,
+      },
+    },
   },
 
   setActiveProject: (project) => set({ activeProject: project }),
@@ -269,8 +305,130 @@ export const useProjectsStore = create<ProjectsStore>((set, get) => ({
         isComparing: false,
         diffResults: [],
         comparisonMode: 'capabilities',
+        highlighting: {
+          diffResults: [],
+          filters: {
+            showOnlyDifferences: false,
+            showBlueOnly: true,
+            showGreenOnly: true,
+            showYellowOnly: true,
+          },
+          summary: {
+            totalDifferences: 0,
+            onlyInA: 0,
+            onlyInB: 0,
+            differentValues: 0,
+          },
+        },
       },
     })),
+
+  // Story 5.3 - Highlighting actions
+  setHighlightFilters: (filters) =>
+    set((state) => ({
+      comparison: {
+        ...state.comparison,
+        highlighting: {
+          ...state.comparison.highlighting,
+          filters: {
+            ...state.comparison.highlighting.filters,
+            ...filters,
+          },
+        },
+      },
+    })),
+
+  calculateSummaryStats: async () => {
+    const { diffResults } = get().comparison
+
+    if (diffResults.length === 0) {
+      set((state) => ({
+        comparison: {
+          ...state.comparison,
+          highlighting: {
+            ...state.comparison.highlighting,
+            summary: {
+              totalDifferences: 0,
+              onlyInA: 0,
+              onlyInB: 0,
+              differentValues: 0,
+            },
+          },
+        },
+      }))
+      return
+    }
+
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const summary = await invoke('calculate_summary_stats', {
+        diffResults,
+      }) as SummaryStats
+
+      set((state) => ({
+        comparison: {
+          ...state.comparison,
+          highlighting: {
+            ...state.comparison.highlighting,
+            summary,
+          },
+        },
+      }))
+    } catch (error) {
+      console.error('Failed to calculate summary stats:', error)
+    }
+  },
+
+  toggleDifferenceFilter: () =>
+    set((state) => ({
+      comparison: {
+        ...state.comparison,
+        highlighting: {
+          ...state.comparison.highlighting,
+          filters: {
+            ...state.comparison.highlighting.filters,
+            showOnlyDifferences: !state.comparison.highlighting.filters.showOnlyDifferences,
+          },
+        },
+      },
+    })),
+
+  categorizeDifferences: async () => {
+    const { diffResults } = get().comparison
+
+    if (diffResults.length === 0) {
+      set((state) => ({
+        comparison: {
+          ...state.comparison,
+          highlighting: {
+            ...state.comparison.highlighting,
+            diffResults: [],
+          },
+        },
+      }))
+      return
+    }
+
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const categorized = await invoke('categorize_differences', {
+        diffResults,
+      }) as DiffResult[]
+
+      set((state) => ({
+        comparison: {
+          ...state.comparison,
+          diffResults: categorized,
+          highlighting: {
+            ...state.comparison.highlighting,
+            diffResults: categorized,
+          },
+        },
+      }))
+    } catch (error) {
+      console.error('Failed to categorize differences:', error)
+    }
+  },
 }))
 
 // Helper function to sort projects

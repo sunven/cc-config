@@ -43,11 +43,11 @@ export function DifferenceHighlight({ diffResult, side, className }: DifferenceH
         }
       case 'only-right':
         return {
-          bgColor: 'bg-purple-50 dark:bg-purple-950',
-          borderColor: 'border-purple-200 dark:border-purple-800',
-          icon: <ArrowRight className="h-4 w-4 text-purple-600" />,
+          bgColor: 'bg-green-50 dark:bg-green-950',
+          borderColor: 'border-green-200 dark:border-green-800',
+          icon: <ArrowRight className="h-4 w-4 text-green-600" />,
           label: side === 'right' ? 'Present' : 'Missing',
-          textColor: 'text-purple-700 dark:text-purple-300',
+          textColor: 'text-green-700 dark:text-green-300',
         }
       case 'conflict':
         return {

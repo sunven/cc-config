@@ -86,6 +86,7 @@ pub struct DiffResult {
     pub right_value: Option<Capability>,
     pub status: DiffStatus,
     pub severity: DiffSeverity,
+    pub highlight_class: Option<String>, // CSS class for visual highlighting
 }
 
 /// Status of a capability comparison
@@ -114,4 +115,24 @@ pub enum DiffSeverity {
     Medium,
     #[serde(rename = "high")]
     High,
+}
+
+/// Highlighting configuration for difference visualization
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct HighlightFilters {
+    pub show_only_differences: bool,
+    pub show_blue_only: bool, // Only in A
+    pub show_green_only: bool, // Only in B
+    pub show_yellow_only: bool, // Different values
+}
+
+/// Summary statistics for difference highlighting
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
+pub struct SummaryStats {
+    pub total_differences: u32,
+    pub only_in_a: u32,
+    pub only_in_b: u32,
+    pub different_values: u32,
 }

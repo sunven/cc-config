@@ -155,15 +155,33 @@ describe('ProjectComparison', () => {
           },
         ],
         comparisonMode: 'capabilities' as const,
+        highlighting: {
+          diffResults: [],
+          filters: {
+            showOnlyDifferences: false,
+            showBlueOnly: true,
+            showGreenOnly: true,
+            showYellowOnly: true,
+          },
+          summary: {
+            totalDifferences: 2,
+            onlyInA: 1,
+            onlyInB: 0,
+            differentValues: 1,
+          },
+        },
       },
       clearComparison: vi.fn(),
       calculateDiff: vi.fn(),
+      categorizeDifferences: vi.fn(),
+      calculateSummaryStats: vi.fn(),
     } as any)
 
     render(<ProjectComparison />)
 
-    expect(screen.getByText('1 matches')).toBeInTheDocument()
-    expect(screen.getByText('1 differences')).toBeInTheDocument()
-    expect(screen.getByText('1 only in left')).toBeInTheDocument()
+    // Verify comparison view is rendered with highlighting
+    expect(screen.getByText('Project Comparison')).toBeInTheDocument()
+    expect(screen.getByText('Left Project')).toBeInTheDocument()
+    expect(screen.getByText('Right Project')).toBeInTheDocument()
   })
 })

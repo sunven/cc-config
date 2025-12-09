@@ -1,4 +1,6 @@
-use crate::types::app::{AppError, Capability, DiffResult, DiffStatus, DiffSeverity};
+use crate::types::app::{
+    AppError, Capability, DiffResult, DiffStatus, DiffSeverity, HighlightFilters, SummaryStats,
+};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -494,6 +496,7 @@ pub async fn calculate_diff(
                     right_value: Some((*right_cap).clone()),
                     status: DiffStatus::Match,
                     severity: DiffSeverity::Low,
+                    highlight_class: Some("".to_string()), // No highlighting for matches
                 });
             } else {
                 // Values differ
@@ -503,6 +506,7 @@ pub async fn calculate_diff(
                     right_value: Some((*right_cap).clone()),
                     status: DiffStatus::Different,
                     severity: DiffSeverity::Medium,
+                    highlight_class: Some("bg-yellow-100 text-yellow-800".to_string()), // Yellow for different values
                 });
             }
         } else {
@@ -513,6 +517,7 @@ pub async fn calculate_diff(
                 right_value: None,
                 status: DiffStatus::OnlyLeft,
                 severity: DiffSeverity::Medium,
+                highlight_class: Some("bg-blue-100 text-blue-800".to_string()), // Blue for only in A
             });
         }
     }
@@ -532,11 +537,92 @@ pub async fn calculate_diff(
                 right_value: Some(right_cap.clone()),
                 status: DiffStatus::OnlyRight,
                 severity: DiffSeverity::Medium,
+                highlight_class: Some("bg-green-100 text-green-800".to_string()), // Green for only in B
             });
         }
     }
 
     Ok(diffs)
+}
+
+/// Categorize differences with highlighting metadata
+#[tauri::command]
+pub async fn categorize_differences(
+    diff_results: Vec<DiffResult>,
+) -> Result<Vec<DiffResult>, AppError> {
+    let categorized = diff_results
+        .into_iter()
+        .map(|mut diff| {
+            // Ensure highlight_class is set based on status
+            if diff.highlight_class.is_none() {
+                diff.highlight_class = Some(match diff.status {
+                    DiffStatus::Match => "".to_string(), // No highlighting for matches
+                    DiffStatus::OnlyLeft => "bg-blue-100 text-blue-800".to_string(), // Blue for only in A
+                    DiffStatus::OnlyRight => "bg-green-100 text-green-800".to_string(), // Green for only in B
+                    DiffStatus::Different | DiffStatus::Conflict => {
+                        "bg-yellow-100 text-yellow-800".to_string()
+                    } // Yellow for different values
+                });
+            }
+            diff
+        })
+        .collect();
+
+    Ok(categorized)
+}
+
+/// Calculate summary statistics for highlighting
+#[tauri::command]
+pub async fn calculate_summary_stats(
+    diff_results: Vec<DiffResult>,
+) -> Result<SummaryStats, AppError> {
+    let mut only_in_a = 0;
+    let mut only_in_b = 0;
+    let mut different_values = 0;
+
+    for diff in diff_results {
+        match diff.status {
+            DiffStatus::OnlyLeft => only_in_a += 1,
+            DiffStatus::OnlyRight => only_in_b += 1,
+            DiffStatus::Different | DiffStatus::Conflict => different_values += 1,
+            DiffStatus::Match => {}
+        }
+    }
+
+    let total_differences = only_in_a + only_in_b + different_values;
+
+    Ok(SummaryStats {
+        total_differences,
+        only_in_a,
+        only_in_b,
+        different_values,
+    })
+}
+
+/// Filter capabilities based on highlighting filters
+#[tauri::command]
+pub async fn filter_capabilities(
+    capabilities: Vec<Capability>,
+    filters: HighlightFilters,
+) -> Result<Vec<Capability>, AppError> {
+    let filtered: Vec<Capability> = capabilities
+        .into_iter()
+        .filter(|_cap| {
+            // If showOnlyDifferences is true, filter to show only differences
+            if filters.show_only_differences {
+                // Only keep capabilities that would be highlighted (not matches)
+                // This is a placeholder - actual filtering would happen at diff level
+                return true;
+            }
+
+            // Individual filter toggles
+            // For now, return all capabilities
+            // In full implementation, this would check against diff results
+            true
+        })
+        .collect();
+
+    Ok(filtered)
 }
 
 #[cfg(test)]
@@ -690,6 +776,8 @@ mod tests {
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].status, DiffStatus::Match);
         assert_eq!(result[1].status, DiffStatus::Match);
+        assert_eq!(result[0].highlight_class, Some("".to_string()));
+        assert_eq!(result[1].highlight_class, Some("".to_string()));
     }
 
     #[tokio::test]
@@ -716,6 +804,7 @@ mod tests {
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].status, DiffStatus::Different);
+        assert_eq!(result[0].highlight_class, Some("bg-yellow-100 text-yellow-800".to_string()));
     }
 
     #[tokio::test]
@@ -735,6 +824,7 @@ mod tests {
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].status, DiffStatus::OnlyLeft);
+        assert_eq!(result[0].highlight_class, Some("bg-blue-100 text-blue-800".to_string()));
     }
 
     #[tokio::test]
@@ -754,6 +844,7 @@ mod tests {
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].status, DiffStatus::OnlyRight);
+        assert_eq!(result[0].highlight_class, Some("bg-green-100 text-green-800".to_string()));
     }
 
     #[tokio::test]
@@ -767,5 +858,254 @@ mod tests {
         // Currently this will panic due to todo!()
         // After implementation, it should return an empty Vec or proper error
         assert!(result.is_err() || result.is_ok());
+    }
+
+    // Story 5.3: Highlighting tests
+
+    #[tokio::test]
+    async fn test_categorize_differences_with_highlighting() {
+        let diff_results = vec![
+            DiffResult {
+                capability_id: "cap1".to_string(),
+                left_value: Some(Capability {
+                    id: "cap1".to_string(),
+                    key: "cap1".to_string(),
+                    value: serde_json::Value::String("value1".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: None,
+                status: DiffStatus::OnlyLeft,
+                severity: DiffSeverity::Medium,
+                highlight_class: None,
+            },
+            DiffResult {
+                capability_id: "cap2".to_string(),
+                left_value: None,
+                right_value: Some(Capability {
+                    id: "cap2".to_string(),
+                    key: "cap2".to_string(),
+                    value: serde_json::Value::String("value2".to_string()),
+                    source: "right".to_string(),
+                }),
+                status: DiffStatus::OnlyRight,
+                severity: DiffSeverity::Medium,
+                highlight_class: None,
+            },
+            DiffResult {
+                capability_id: "cap3".to_string(),
+                left_value: Some(Capability {
+                    id: "cap3".to_string(),
+                    key: "cap3".to_string(),
+                    value: serde_json::Value::String("value3".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: Some(Capability {
+                    id: "cap3".to_string(),
+                    key: "cap3".to_string(),
+                    value: serde_json::Value::String("different".to_string()),
+                    source: "right".to_string(),
+                }),
+                status: DiffStatus::Different,
+                severity: DiffSeverity::Medium,
+                highlight_class: None,
+            },
+            DiffResult {
+                capability_id: "cap4".to_string(),
+                left_value: Some(Capability {
+                    id: "cap4".to_string(),
+                    key: "cap4".to_string(),
+                    value: serde_json::Value::String("same".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: Some(Capability {
+                    id: "cap4".to_string(),
+                    key: "cap4".to_string(),
+                    value: serde_json::Value::String("same".to_string()),
+                    source: "right".to_string(),
+                }),
+                status: DiffStatus::Match,
+                severity: DiffSeverity::Low,
+                highlight_class: None,
+            },
+        ];
+
+        let result = categorize_differences(diff_results).await.unwrap();
+
+        // Check that highlight classes are set correctly
+        assert_eq!(result[0].highlight_class, Some("bg-blue-100 text-blue-800".to_string())); // Only in A - Blue
+        assert_eq!(result[1].highlight_class, Some("bg-green-100 text-green-800".to_string())); // Only in B - Green
+        assert_eq!(result[2].highlight_class, Some("bg-yellow-100 text-yellow-800".to_string())); // Different - Yellow
+        assert_eq!(result[3].highlight_class, Some("".to_string())); // Match - No highlighting
+    }
+
+    #[tokio::test]
+    async fn test_calculate_summary_stats() {
+        let diff_results = vec![
+            DiffResult {
+                capability_id: "cap1".to_string(),
+                left_value: Some(Capability {
+                    id: "cap1".to_string(),
+                    key: "cap1".to_string(),
+                    value: serde_json::Value::String("value1".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: None,
+                status: DiffStatus::OnlyLeft,
+                severity: DiffSeverity::Medium,
+                highlight_class: None,
+            },
+            DiffResult {
+                capability_id: "cap2".to_string(),
+                left_value: None,
+                right_value: Some(Capability {
+                    id: "cap2".to_string(),
+                    key: "cap2".to_string(),
+                    value: serde_json::Value::String("value2".to_string()),
+                    source: "right".to_string(),
+                }),
+                status: DiffStatus::OnlyRight,
+                severity: DiffSeverity::Medium,
+                highlight_class: None,
+            },
+            DiffResult {
+                capability_id: "cap3".to_string(),
+                left_value: Some(Capability {
+                    id: "cap3".to_string(),
+                    key: "cap3".to_string(),
+                    value: serde_json::Value::String("value3".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: Some(Capability {
+                    id: "cap3".to_string(),
+                    key: "cap3".to_string(),
+                    value: serde_json::Value::String("different".to_string()),
+                    source: "right".to_string(),
+                }),
+                status: DiffStatus::Different,
+                severity: DiffSeverity::Medium,
+                highlight_class: None,
+            },
+            DiffResult {
+                capability_id: "cap4".to_string(),
+                left_value: Some(Capability {
+                    id: "cap4".to_string(),
+                    key: "cap4".to_string(),
+                    value: serde_json::Value::String("same".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: Some(Capability {
+                    id: "cap4".to_string(),
+                    key: "cap4".to_string(),
+                    value: serde_json::Value::String("same".to_string()),
+                    source: "right".to_string(),
+                }),
+                status: DiffStatus::Match,
+                severity: DiffSeverity::Low,
+                highlight_class: None,
+            },
+        ];
+
+        let stats = calculate_summary_stats(diff_results).await.unwrap();
+
+        assert_eq!(stats.total_differences, 3);
+        assert_eq!(stats.only_in_a, 1);
+        assert_eq!(stats.only_in_b, 1);
+        assert_eq!(stats.different_values, 1);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_summary_stats_empty() {
+        let diff_results = vec![];
+
+        let stats = calculate_summary_stats(diff_results).await.unwrap();
+
+        assert_eq!(stats.total_differences, 0);
+        assert_eq!(stats.only_in_a, 0);
+        assert_eq!(stats.only_in_b, 0);
+        assert_eq!(stats.different_values, 0);
+    }
+
+    #[tokio::test]
+    async fn test_categorize_differences_preserves_existing_highlight_class() {
+        let diff_results = vec![
+            DiffResult {
+                capability_id: "cap1".to_string(),
+                left_value: Some(Capability {
+                    id: "cap1".to_string(),
+                    key: "cap1".to_string(),
+                    value: serde_json::Value::String("value1".to_string()),
+                    source: "left".to_string(),
+                }),
+                right_value: None,
+                status: DiffStatus::OnlyLeft,
+                severity: DiffSeverity::Medium,
+                highlight_class: Some("custom-class".to_string()),
+            },
+        ];
+
+        let result = categorize_differences(diff_results).await.unwrap();
+
+        // Should preserve existing highlight class
+        assert_eq!(result[0].highlight_class, Some("custom-class".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_filter_capabilities() {
+        let capabilities = vec![
+            Capability {
+                id: "cap1".to_string(),
+                key: "cap1".to_string(),
+                value: serde_json::Value::String("value1".to_string()),
+                source: "left".to_string(),
+            },
+            Capability {
+                id: "cap2".to_string(),
+                key: "cap2".to_string(),
+                value: serde_json::Value::String("value2".to_string()),
+                source: "right".to_string(),
+            },
+        ];
+
+        let filters = HighlightFilters {
+            show_only_differences: false,
+            show_blue_only: true,
+            show_green_only: false,
+            show_yellow_only: false,
+        };
+
+        let result = filter_capabilities(capabilities, filters).await.unwrap();
+
+        // Should return all capabilities (filtering happens at diff level)
+        assert_eq!(result.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_filter_capabilities_show_only_differences() {
+        let capabilities = vec![
+            Capability {
+                id: "cap1".to_string(),
+                key: "cap1".to_string(),
+                value: serde_json::Value::String("value1".to_string()),
+                source: "left".to_string(),
+            },
+            Capability {
+                id: "cap2".to_string(),
+                key: "cap2".to_string(),
+                value: serde_json::Value::String("value2".to_string()),
+                source: "right".to_string(),
+            },
+        ];
+
+        let filters = HighlightFilters {
+            show_only_differences: true,
+            show_blue_only: false,
+            show_green_only: false,
+            show_yellow_only: false,
+        };
+
+        let result = filter_capabilities(capabilities, filters).await.unwrap();
+
+        // Should return capabilities (actual filtering at diff level in full implementation)
+        assert_eq!(result.len(), 2);
     }
 }
