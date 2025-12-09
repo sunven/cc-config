@@ -5,10 +5,12 @@ import type { InheritanceStats } from '../utils/statsCalculator'
 import type { InheritanceStatsState } from '../types/inheritance-summary'
 import type { McpServer } from '../types/mcp'
 import type { Agent, AgentFilterState, AgentSortState } from '../types/agent'
+import type { UnifiedCapability, CapabilityFilterState, CapabilitySortState } from '../types/capability'
 import { readAndParseConfig, extractAllEntries, mergeConfigs, parseMcpServers } from '../lib/configParser'
 import { parseAgents } from '../lib/agentParser'
 import { calculateInheritance } from '../lib/inheritanceCalculator'
 import { calculateStats } from '../utils/statsCalculator'
+import { unifyCapabilities, filterCapabilities as filterUnifiedCapabilities, sortCapabilities as sortUnifiedCapabilities } from '../lib/capabilityUnifier'
 
 // Cache entry with timestamp for stale-while-revalidate pattern
 interface CacheEntry<T> {
@@ -56,6 +58,9 @@ interface ConfigStore {
     local: Agent[]
   }
 
+  // Unified capabilities for Story 4.3
+  capabilities: UnifiedCapability[]
+
   // Loading states - only for initial load, not for cached switches
   isInitialLoading: boolean
   isBackgroundLoading: boolean
@@ -99,6 +104,13 @@ interface ConfigStore {
   filterAgents: (filters: AgentFilterState) => Agent[]
   sortAgents: (agents: Agent[], sort: AgentSortState) => Agent[]
 
+  // Unified capability actions for Story 4.3
+  updateCapabilities: () => Promise<void>
+  getCapabilities: (type?: 'all' | 'mcp' | 'agent') => UnifiedCapability[]
+  filterCapabilities: (filters: CapabilityFilterState) => UnifiedCapability[]
+  searchCapabilities: (query: string) => UnifiedCapability[]
+  sortCapabilities: (capabilities: UnifiedCapability[], sort: CapabilitySortState) => UnifiedCapability[]
+
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
   updateConfig: (key: string, value: any, sourceType: 'user' | 'project' | 'local') => void
@@ -139,6 +151,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     project: [],
     local: []
   },
+  capabilities: [],
   isInitialLoading: true,
   isBackgroundLoading: false,
   isLoading: true, // Legacy alias - same as isInitialLoading
@@ -439,6 +452,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
         project: [],
         local: []
       },
+      capabilities: [],
       error: null,
       isInitialLoading: false,
       isLoading: false,
@@ -820,5 +834,48 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
       const comparison = aValue.localeCompare(bValue)
       return sort.direction === 'asc' ? comparison : -comparison
     })
+  },
+
+  // Unified capability actions for Story 4.3
+  updateCapabilities: async () => {
+    const state = get()
+
+    try {
+      // Ensure MCP servers and agents are loaded
+      await Promise.all([state.updateMcpServers(), state.updateAgents()])
+
+      // Unify MCP servers and agents into capabilities
+      const { capabilities } = unifyCapabilities(state.mcpServers, state.agents)
+
+      set({ capabilities })
+    } catch (error) {
+      console.error('[configStore] Failed to update capabilities:', error)
+      set({
+        error: `Failed to update capabilities: ${error instanceof Error ? error.message : 'Unknown error'}`
+      })
+      // Don't throw - capabilities are optional
+    }
+  },
+
+  getCapabilities: (type = 'all') => {
+    const state = get()
+    if (type === 'all') {
+      return state.capabilities
+    }
+    return state.capabilities.filter(cap => cap.type === type)
+  },
+
+  filterCapabilities: (filters) => {
+    const state = get()
+    return filterUnifiedCapabilities(state.capabilities, filters)
+  },
+
+  searchCapabilities: (query) => {
+    const state = get()
+    return filterUnifiedCapabilities(state.capabilities, { searchQuery: query })
+  },
+
+  sortCapabilities: (capabilities, sort) => {
+    return sortUnifiedCapabilities(capabilities, sort)
   },
 }))

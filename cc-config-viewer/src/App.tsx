@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react'
+import { useEffect, useCallback, useMemo, useState } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -6,6 +6,7 @@ import { ConfigList } from '@/components/ConfigList'
 import { ProjectTab } from '@/components/ProjectTab'
 import { ScopeIndicator } from '@/components/ScopeIndicator'
 import { ProjectSelector } from '@/components/ProjectSelector'
+import { CapabilityPanel } from '@/components/CapabilityPanel'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -17,6 +18,9 @@ function App() {
   // Use selectors for fine-grained subscriptions (Task 3 optimization)
   const currentScope = useUiStore((state) => state.currentScope)
   const setCurrentScope = useUiStore((state) => state.setCurrentScope)
+
+  // Content tab state for capability views
+  const [currentContentTab, setCurrentContentTab] = useState<'config' | 'mcp' | 'agents' | 'capabilities'>('config')
 
   // Use selectors for configStore
   const configs = useConfigStore((state) => state.configs)
@@ -109,12 +113,25 @@ function App() {
                 <div className="mb-4">
                   <ScopeIndicator scope="user" />
                 </div>
-                <ConfigList
-                  configs={configs}
-                  title="User-Level Configuration"
-                  isLoading={isInitialLoading}
-                  error={error}
-                />
+                <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="config">Config</TabsTrigger>
+                    <TabsTrigger value="mcp">MCP</TabsTrigger>
+                    <TabsTrigger value="agents">Agents</TabsTrigger>
+                    <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="config" className="mt-4">
+                    <ConfigList
+                      configs={configs}
+                      title="User-Level Configuration"
+                      isLoading={isInitialLoading}
+                      error={error}
+                    />
+                  </TabsContent>
+                  <TabsContent value="capabilities" className="mt-4">
+                    <CapabilityPanel scope="user" />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
               {showProjectTab && (
                 <TabsContent value="project" className="mt-4 tab-content-transition">
@@ -123,12 +140,25 @@ function App() {
                     <ProjectSelector onProjectSelect={handleProjectSelect} />
                   </div>
                   <ProjectTab scope="project" project={activeProject} />
-                  <ConfigList
-                    configs={configs}
-                    title="Project-Level Configuration"
-                    isLoading={isInitialLoading}
-                    error={error}
-                  />
+                  <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="config">Config</TabsTrigger>
+                      <TabsTrigger value="mcp">MCP</TabsTrigger>
+                      <TabsTrigger value="agents">Agents</TabsTrigger>
+                      <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="config" className="mt-4">
+                      <ConfigList
+                        configs={configs}
+                        title="Project-Level Configuration"
+                        isLoading={isInitialLoading}
+                        error={error}
+                      />
+                    </TabsContent>
+                    <TabsContent value="capabilities" className="mt-4">
+                      <CapabilityPanel scope="project" projectName={activeProject?.name} />
+                    </TabsContent>
+                  </Tabs>
                 </TabsContent>
               )}
             </Tabs>

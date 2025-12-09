@@ -52,10 +52,10 @@ export function useFileWatcher() {
         }
 
         // Determine scope based on path
-        if (path.includes('.claude.json') || path.includes('claude_desktop_config')) {
+        if (path.includes('.claude.json') || path.includes('claude_desktop_config') || path.includes('.claude/agents/')) {
           invalidateUser = true
         }
-        if (path.includes('.mcp.json') || path.includes('mcp.json')) {
+        if (path.includes('.mcp.json') || path.includes('mcp.json') || path.includes('.claude/agents/')) {
           invalidateProject = true
         }
       }
