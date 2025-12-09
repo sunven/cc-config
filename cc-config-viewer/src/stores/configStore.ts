@@ -6,11 +6,13 @@ import type { InheritanceStatsState } from '../types/inheritance-summary'
 import type { McpServer } from '../types/mcp'
 import type { Agent, AgentFilterState, AgentSortState } from '../types/agent'
 import type { UnifiedCapability, CapabilityFilterState, CapabilitySortState } from '../types/capability'
+import type { CapabilityStats } from '../lib/capabilityStats'
 import { readAndParseConfig, extractAllEntries, mergeConfigs, parseMcpServers } from '../lib/configParser'
 import { parseAgents } from '../lib/agentParser'
 import { calculateInheritance } from '../lib/inheritanceCalculator'
 import { calculateStats } from '../utils/statsCalculator'
 import { unifyCapabilities, filterCapabilities as filterUnifiedCapabilities, sortCapabilities as sortUnifiedCapabilities } from '../lib/capabilityUnifier'
+import { calculateCapabilityStats } from '../lib/capabilityStats'
 
 // Cache entry with timestamp for stale-while-revalidate pattern
 interface CacheEntry<T> {
@@ -110,6 +112,9 @@ interface ConfigStore {
   filterCapabilities: (filters: CapabilityFilterState) => UnifiedCapability[]
   searchCapabilities: (query: string) => UnifiedCapability[]
   sortCapabilities: (capabilities: UnifiedCapability[], sort: CapabilitySortState) => UnifiedCapability[]
+
+  // Capability statistics for Story 4.5
+  getCapabilityStats: (scope?: 'user' | 'project') => CapabilityStats
 
   // Legacy actions for compatibility
   updateConfigs: () => Promise<void>
@@ -877,5 +882,17 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   sortCapabilities: (capabilities, sort) => {
     return sortUnifiedCapabilities(capabilities, sort)
+  },
+
+  // Capability statistics for Story 4.5
+  getCapabilityStats: (scope) => {
+    const state = get()
+    // Get capabilities filtered by scope (or all if no scope specified)
+    const capabilities = scope
+      ? state.capabilities.filter(cap => cap.source === scope)
+      : state.capabilities
+
+    // Calculate and return stats, passing inheritance map if available
+    return calculateCapabilityStats(capabilities, scope, state.inheritanceMap)
   },
 }))

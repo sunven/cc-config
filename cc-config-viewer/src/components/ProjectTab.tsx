@@ -3,6 +3,7 @@ import { useUiStore } from '../stores/uiStore'
 import { useConfigStore } from '../stores/configStore'
 import { Badge } from './ui/badge'
 import { InheritanceSummary } from './inheritance/InheritanceSummary'
+import { CapabilityStats } from './CapabilityStats'
 import type { Project } from '../types/project'
 
 interface ProjectTabProps {
@@ -19,6 +20,7 @@ export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ 
   const calculateStatsFromChain = useConfigStore((state) => state.calculateStatsFromChain)
   const inheritanceStats = useConfigStore((state) => state.inheritanceStats)
   const classifiedEntries = useConfigStore((state) => state.classifiedEntries)
+  const getCapabilityStats = useConfigStore((state) => state.getCapabilityStats)
 
   const isActive = currentScope === scope
   const label = scope === 'user' ? '用户级' : (project?.name || 'Project')
@@ -39,6 +41,7 @@ export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ 
 
   // Get stats
   const stats = selectStats()
+  const capabilityStats = getCapabilityStats(scope)
 
   return (
     <>
@@ -75,6 +78,15 @@ export const ProjectTab: React.FC<ProjectTabProps> = memo(function ProjectTab({ 
           />
         </div>
       )}
+
+      {/* Capability Statistics - shown for both user and project scopes */}
+      <div className="mt-4">
+        <CapabilityStats
+          stats={capabilityStats}
+          scope={scope}
+          compact={false}
+        />
+      </div>
     </>
   )
 }, (prevProps, nextProps) => {
