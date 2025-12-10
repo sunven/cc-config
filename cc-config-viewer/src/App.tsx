@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useMemo, useState } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorDisplay, ErrorBadge } from '@/components/ErrorDisplay'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ConfigList } from '@/components/ConfigList'
@@ -14,6 +15,7 @@ import { ProjectComparison } from '@/components/ProjectComparison'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
+import { useErrorHandler } from '@/hooks/useErrorHandler'
 import { useFileWatcher } from '@/hooks/useFileWatcher'
 import { detectCurrentProject } from '@/lib/projectDetection'
 import type { Project } from '@/types/project'
@@ -119,12 +121,16 @@ function App() {
       <TooltipProvider>
         <div className="min-h-screen bg-background text-foreground">
           {/* Header */}
-          <header className="border-b border-border px-6 py-4">
+          <header className="border-b border-border px-6 py-4 flex items-center justify-between">
             <h1 className="text-xl font-semibold">cc-config</h1>
+            <ErrorBadge />
           </header>
 
           {/* Main Content with Tab Navigation */}
-          <main className="p-6">
+          <main className="p-6 space-y-4">
+            {/* Error Display Area */}
+            <ErrorDisplay maxErrors={3} />
+
             <Tabs value={currentScope} onValueChange={handleTabChange} className="w-full">
               <TabsList className={`grid w-full ${tabGridCols}`}>
                 <TabsTrigger value="user">用户级</TabsTrigger>

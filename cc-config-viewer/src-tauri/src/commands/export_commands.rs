@@ -59,6 +59,7 @@ pub async fn save_export_file(
     let file_path = downloads_dir.join(&filename);
 
     // Write file to filesystem
+    let file_path_str = file_path.to_string_lossy().to_string();
     match tokio::fs::write(&file_path, content.as_bytes()).await {
         Ok(_) => {
             let file_size = tokio::fs::metadata(&file_path).await?.len();
@@ -66,8 +67,8 @@ pub async fn save_export_file(
 
             Ok(ExportResult {
                 success: true,
-                file_path: Some(file_path.to_string_lossy().to_string()),
-                content: Some(content),
+                file_path: Some(file_path_str),
+                content: Some(content.clone()),
                 format: serde_json::from_str(&format).unwrap_or(crate::types::export::ExportFormat::Json),
                 error: None,
                 stats: Some(ExportStats {
@@ -79,7 +80,7 @@ pub async fn save_export_file(
         }
         Err(e) => Ok(ExportResult {
             success: false,
-            file_path: Some(file_path.to_string_lossy().to_string()),
+            file_path: Some(file_path_str),
             content: None,
             format: serde_json::from_str(&format).unwrap_or(crate::types::export::ExportFormat::Json),
             error: Some(e.to_string()),
@@ -95,9 +96,9 @@ pub async fn save_export_file(
 /// Get the downloads directory path
 #[tauri::command]
 pub async fn get_downloads_path() -> Result<PathBuf, AppError> {
-    // Use tauri API to get downloads directory
-    let downloads_dir = tauri::api::path::download_dir(&tauri::generate_context!())
-        .map_err(|e| AppError::Filesystem(e.to_string()))?;
+    // Use dirs crate to get downloads directory
+    let downloads_dir = dirs::download_dir()
+        .ok_or_else(|| AppError::Filesystem("Could not determine downloads directory".to_string()))?;
 
     // Ensure directory exists
     if !downloads_dir.exists() {
@@ -261,14 +262,15 @@ pub async fn get_export_file_info(
     }
 
     let metadata = tokio::fs::metadata(path).await?;
+    let filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_string();
 
     Ok(Some(ExportFileInfo {
         path: file_path,
-        filename: path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("")
-            .to_string(),
+        filename,
         format: crate::types::export::ExportFormat::Json, // Default, should be determined from extension
         size: metadata.len(),
         created_at: chrono::Utc::now().to_rfc3339(),

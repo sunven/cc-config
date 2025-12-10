@@ -91,10 +91,10 @@ development_status:
 
   # Epic 6: Error Handling & User Experience
   epic-6: in-progress
-  6-1-comprehensive-error-handling: ready-for-dev
+  6-1-comprehensive-error-handling: review
   6-2-loading-states-and-progress-indicators: ready-for-dev
-  6-3-first-time-user-experience: backlog
-  6-4-performance-optimization: backlog
-  6-5-accessibility-and-internationalization: backlog
-  6-6-final-polish-and-testing: backlog
+  6-3-first-time-user-experience: ready-for-dev
+  6-4-performance-optimization: ready-for-dev
+  6-5-accessibility-and-internationalization: ready-for-dev
+  6-6-final-polish-and-testing: ready-for-dev
   epic-6-retrospective: optional
