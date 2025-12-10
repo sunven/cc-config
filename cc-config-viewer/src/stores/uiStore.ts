@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { LoadingIndicator } from '../lib/loadingTypes'
 
 type ScopeType = 'user' | 'project'
 
@@ -10,6 +11,8 @@ const isValidScope = (scope: unknown): scope is ScopeType => {
 interface UiStore {
   currentScope: ScopeType
   isLoading: boolean
+  loadingMessage: string | null
+  isInitialLoading: boolean
   sidebarOpen: boolean
   theme: 'light' | 'dark'
   // View mode for inheritance display
@@ -29,10 +32,13 @@ interface UiStore {
   }
   setCurrentScope: (scope: ScopeType) => void
   setLoading: (loading: boolean) => void
+  setLoadingMessage: (message: string | null) => void
   setSidebarOpen: (open: boolean) => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
   setViewMode: (mode: 'merged' | 'split') => void
+  // Global loading actions
+  setGlobalLoading: (loading: boolean, message?: string) => void
   // Export actions
   startExport: (format: 'json' | 'markdown' | 'csv', options: any) => void
   setExportProgress: (progress: number) => void
@@ -46,6 +52,8 @@ export const useUiStore = create<UiStore>()(
     (set) => ({
       currentScope: 'user',
       isLoading: false,
+      loadingMessage: null,
+      isInitialLoading: false,
       sidebarOpen: true,
       theme: 'light',
       viewMode: 'merged',
@@ -63,11 +71,17 @@ export const useUiStore = create<UiStore>()(
       },
       setCurrentScope: (scope) => set({ currentScope: scope }),
       setLoading: (loading) => set({ isLoading: loading }),
+      setLoadingMessage: (message) => set({ loadingMessage: message }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setViewMode: (mode) => set({ viewMode: mode }),
+      setGlobalLoading: (loading, message) =>
+        set({
+          isLoading: loading,
+          loadingMessage: loading ? message || null : null,
+        }),
       startExport: (format, options) =>
         set((state) => ({
           export: {
@@ -120,6 +134,8 @@ export const useUiStore = create<UiStore>()(
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
         viewMode: state.viewMode,
+        // Note: loadingMessage and isInitialLoading are NOT persisted
+        // They are reset on app restart for clean state
       }),
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<UiStore> | undefined
@@ -130,6 +146,10 @@ export const useUiStore = create<UiStore>()(
           currentScope: persisted && isValidScope(persisted.currentScope)
             ? persisted.currentScope
             : 'user',
+          // Reset loading state on app restart
+          isLoading: false,
+          loadingMessage: null,
+          isInitialLoading: false,
         }
       },
     }

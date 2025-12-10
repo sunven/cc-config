@@ -3,6 +3,7 @@ import equal from 'fast-deep-equal'
 import type { ConfigEntry } from '../types'
 import { Badge } from './ui/badge'
 import { SourceIndicator } from './SourceIndicator'
+import { ConfigSkeleton } from './ConfigSkeleton'
 import { useConfigStore } from '../stores/configStore'
 import { useUiStore } from '../stores/uiStore'
 
@@ -139,9 +140,7 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
     return (
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold mb-4">{title}</h2>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-gray-500" data-testid="loading-spinner">Loading configuration...</div>
-        </div>
+        <ConfigSkeleton count={5} />
       </div>
     )
   }

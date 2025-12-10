@@ -12,6 +12,7 @@ import { McpList } from '@/components/McpList'
 import { AgentList } from '@/components/AgentList'
 import { ProjectDashboard } from '@/components/ProjectDashboard'
 import { ProjectComparison } from '@/components/ProjectComparison'
+import { LoadingStates } from '@/components/LoadingStates'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -24,6 +25,10 @@ function App() {
   // Use selectors for fine-grained subscriptions (Task 3 optimization)
   const currentScope = useUiStore((state) => state.currentScope)
   const setCurrentScope = useUiStore((state) => state.setCurrentScope)
+  const { isLoading, loadingMessage } = useUiStore((state) => ({
+    isLoading: state.isLoading,
+    loadingMessage: state.loadingMessage,
+  }))
 
   // Content tab state for capability views
   const [currentContentTab, setCurrentContentTab] = useState<'config' | 'mcp' | 'agents' | 'capabilities'>('config')
@@ -125,6 +130,13 @@ function App() {
             <h1 className="text-xl font-semibold">cc-config</h1>
             <ErrorBadge />
           </header>
+
+          {/* Global Loading Overlay */}
+          <LoadingStates
+            isLoading={isLoading}
+            message={loadingMessage}
+            indicator="overlay"
+          />
 
           {/* Main Content with Tab Navigation */}
           <main className="p-6 space-y-4">

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { ProjectSkeleton } from './ProjectSkeleton'
 import { getDiscoveredProjects } from '../lib/projectDetection'
 import type { DiscoveredProject } from '../types/project'
 import { Folder, FileText, Clock, Search } from 'lucide-react'
@@ -96,14 +97,14 @@ export function ProjectList({ onProjectSelect }: ProjectListProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span className="ml-2">Scanning for projects...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="h-10 w-full rounded-md bg-muted animate-pulse" />
+          </CardContent>
+        </Card>
+        <ProjectSkeleton count={6} layout="grid" />
+      </div>
     )
   }
 
