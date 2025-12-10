@@ -13,15 +13,28 @@ import { calculateInheritance } from '../lib/inheritanceCalculator'
 import { calculateStats } from '../utils/statsCalculator'
 import { unifyCapabilities, filterCapabilities as filterUnifiedCapabilities, sortCapabilities as sortUnifiedCapabilities } from '../lib/capabilityUnifier'
 import { calculateCapabilityStats } from '../lib/capabilityStats'
+import '../types/weakref'
 
-// Cache entry with timestamp for stale-while-revalidate pattern
+// Cache entry with WeakRef for automatic garbage collection
 interface CacheEntry<T> {
-  data: T
+  data: WeakRef<T>
   timestamp: number
 }
 
 // Cache validity duration (5 minutes)
 const CACHE_VALIDITY_MS = 5 * 60 * 1000
+
+// FinalizationRegistry for auto-cleanup
+const weakRefRegistries = {
+  user: new FinalizationRegistry<string>((key) => {
+    // Clean up user cache entry when object is GC'd
+    console.debug('[ConfigStore] Auto-cleaned user cache for:', key)
+  }),
+  project: new FinalizationRegistry<{ projectPath: string }>((projectPath) => {
+    // Clean up project cache entry when object is GC'd
+    console.debug('[ConfigStore] Auto-cleaned project cache for:', projectPath.projectPath)
+  }),
+}
 
 interface ConfigStore {
   // Cached configs by scope
@@ -167,11 +180,29 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     const state = get()
     if (scope === 'user') {
       if (!state.userConfigsCache) return false
+      // Check if the WeakRef is still valid (object hasn't been GC'd)
+      const data = state.userConfigsCache.data.deref()
+      if (!data) {
+        // Object was garbage collected, invalidate cache
+        set({ userConfigsCache: null })
+        return false
+      }
       return Date.now() - state.userConfigsCache.timestamp < CACHE_VALIDITY_MS
     }
     const key = projectPath || 'default'
     const cache = state.projectConfigsCache[key]
     if (!cache) return false
+    // Check if the WeakRef is still valid
+    const data = cache.data.deref()
+    if (!data) {
+      // Object was garbage collected, remove from cache
+      set((prev) => {
+        const newCache = { ...prev.projectConfigsCache }
+        delete newCache[key]
+        return { projectConfigsCache: newCache }
+      })
+      return false
+    }
     return Date.now() - cache.timestamp < CACHE_VALIDITY_MS
   },
 
@@ -191,20 +222,24 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
     // Return cached data if valid
     if (state.isCacheValid('user')) {
-      return state.userConfigsCache!.data
+      return state.userConfigsCache!.data.deref()!
     }
 
     try {
       const config = await readAndParseConfig('~/.claude.json')
       const newConfigs = extractAllEntries(config, 'user')
 
-      // Update cache
+      // Wrap in WeakRef and update cache
+      const weakConfigs: WeakRef<ConfigEntry[]> = new WeakRef(newConfigs)
       set({
         userConfigsCache: {
-          data: newConfigs,
+          data: weakConfigs,
           timestamp: Date.now()
         }
       })
+
+      // Register for auto-cleanup
+      weakRefRegistries.user.register(newConfigs, 'user')
 
       return newConfigs
     } catch (error) {
@@ -220,7 +255,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
     // Return cached data if valid
     if (state.isCacheValid('project', projectPath)) {
-      return state.projectConfigsCache[cacheKey].data
+      return state.projectConfigsCache[cacheKey].data.deref()!
     }
 
     try {
@@ -228,16 +263,20 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
       const projectConfig = await readAndParseConfig('./.mcp.json')
       const newConfigs = mergeConfigs(userConfig, projectConfig)
 
-      // Update cache
+      // Wrap in WeakRef and update cache
+      const weakConfigs: WeakRef<ConfigEntry[]> = new WeakRef(newConfigs)
       set((prev) => ({
         projectConfigsCache: {
           ...prev.projectConfigsCache,
           [cacheKey]: {
-            data: newConfigs,
+            data: weakConfigs,
             timestamp: Date.now()
           }
         }
       }))
+
+      // Register for auto-cleanup
+      weakRefRegistries.project.register(newConfigs, { projectPath: cacheKey })
 
       return newConfigs
     } catch (error) {
@@ -250,10 +289,12 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   getConfigsForScope: (scope, projectPath) => {
     const state = get()
     if (scope === 'user') {
-      return state.userConfigsCache?.data ?? []
+      const data = state.userConfigsCache?.data.deref()
+      return data ?? []
     }
     const key = projectPath || 'default'
-    return state.projectConfigsCache[key]?.data ?? []
+    const data = state.projectConfigsCache[key]?.data.deref()
+    return data ?? []
   },
 
   // Switch to scope - uses cache first, then background updates if stale
@@ -282,7 +323,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
       // Update inheritance classification and calculate stats
       // For stats calculation, we need both user and project configs
-      const userConfig = state.userConfigsCache?.data || []
+      const userConfig = state.userConfigsCache?.data.deref() || []
       if (scope === 'project' && userConfig.length > 0) {
         state.updateInheritanceChain(userConfig, cachedConfigs)
         state.calculateStatsFromChain()
@@ -314,7 +355,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
             // Update inheritance classification and calculate stats
             // For stats calculation, we need both user and project configs
-            const userConfig = currentState.userConfigsCache?.data || []
+            const userConfig = currentState.userConfigsCache?.data.deref() || []
             if (scope === 'project' && userConfig.length > 0) {
               currentState.updateInheritanceChain(userConfig, freshConfigs)
               currentState.calculateStatsFromChain()
@@ -348,7 +389,7 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
         // Update inheritance classification and calculate stats
         // For stats calculation, we need both user and project configs
-        const userConfig = state.userConfigsCache?.data || []
+        const userConfig = state.userConfigsCache?.data.deref() || []
         if (scope === 'project' && userConfig.length > 0) {
           state.updateInheritanceChain(userConfig, newConfigs)
           state.calculateStatsFromChain()

@@ -69,7 +69,7 @@ CapabilityCardSkeleton.displayName = 'CapabilityCardSkeleton'
 /**
  * Capability list item skeleton
  */
-const CapabilityListSkeleton = React.forwardRef<
+const CapabilityListItemSkeleton = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { showDescription?: boolean }
 >(({ showDescription = true, className, ...props }, ref) => (
@@ -109,7 +109,7 @@ const CapabilityListSkeleton = React.forwardRef<
     <div className="h-8 w-16 rounded bg-muted" />
   </div>
 ))
-CapabilityListSkeleton.displayName = 'CapabilityListSkeleton'
+CapabilityListItemSkeleton.displayName = 'CapabilityListItemSkeleton'
 
 /**
  * Capability skeleton component
@@ -159,7 +159,7 @@ export const CapabilityListSkeleton = React.forwardRef<
       aria-label="Loading capabilities list"
     >
       {Array.from({ length: count }).map((_, index) => (
-        <CapabilityListSkeleton key={index} showDescription={true} />
+        <CapabilityListItemSkeleton key={index} showDescription={true} />
       ))}
 
       <span className="sr-only">Loading capabilities list...</span>

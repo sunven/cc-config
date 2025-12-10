@@ -8,10 +8,11 @@
  */
 
 import type { SourceLocation, SourceLocationCache, TraceSourceRequest } from '../types/trace'
+import '../types/weakref'
 
-/// Source location cache with timestamp for invalidation
+/// Source location cache with WeakRef for automatic GC
 interface CacheEntry {
-  location: SourceLocation
+  location: WeakRef<SourceLocation>
   timestamp: number
 }
 
@@ -22,6 +23,13 @@ const CACHE_VALIDITY_MS = 10 * 60 * 1000
 export class SourceTracker {
   private cache: Map<string, CacheEntry> = new Map()
   private isEnabled: boolean = true
+
+  /// FinalizationRegistry for automatic cleanup
+  private weakRefRegistry = new FinalizationRegistry<string>((configKey) => {
+    // Clean up cache entry when object is garbage collected
+    this.cache.delete(configKey)
+    console.debug('[SourceTracker] Auto-cleaned cache for:', configKey)
+  })
 
   /// Checks if source location tracking is enabled
   isTrackingEnabled(): boolean {
@@ -104,15 +112,28 @@ export class SourceTracker {
       return undefined
     }
 
-    return entry.location
+    // Dereference WeakRef to get the actual object
+    const location = entry.location.deref()
+    if (!location) {
+      // Object was garbage collected, remove the entry
+      this.cache.delete(configKey)
+      return undefined
+    }
+
+    return location
   }
 
   /// Caches a source location
   private cacheLocation(configKey: string, location: SourceLocation): void {
+    // Wrap location in WeakRef
+    const weakLocation: WeakRef<SourceLocation> = new WeakRef(location)
     this.cache.set(configKey, {
-      location,
+      location: weakLocation,
       timestamp: Date.now(),
     })
+
+    // Register for auto-cleanup when object is GC'd
+    this.weakRefRegistry.register(location, configKey)
 
     console.log(`Cached source location for ${configKey}`)
   }

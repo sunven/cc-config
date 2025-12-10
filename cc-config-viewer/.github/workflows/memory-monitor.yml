@@ -1,0 +1,102 @@
+name: Memory Monitoring
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  memory-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run memory monitoring
+        run: |
+          echo "Starting memory monitoring..."
+          node scripts/memory-monitor.js
+
+      - name: Upload memory report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: memory-report
+          path: memory-report.json
+
+      - name: Check memory thresholds
+        run: |
+          echo "Checking memory thresholds..."
+          if [ -f memory-report.json ]; then
+            # Extract peak memory usage
+            PEAK_MEMORY=$(cat memory-report.json | grep -o '"max": [0-9]*' | grep -o '[0-9]*' | tail -1)
+            echo "Peak memory usage: ${PEAK_MEMORY}MB"
+
+            # Check against threshold
+            THRESHOLD=300
+            if [ "$PEAK_MEMORY" -gt "$THRESHOLD" ]; then
+              echo "❌ FAILED: Peak memory (${PEAK_MEMORY}MB) exceeds threshold (${THRESHOLD}MB)"
+              exit 1
+            else
+              echo "✅ PASSED: Peak memory (${PEAK_MEMORY}MB) within threshold (${THRESHOLD}MB)"
+            fi
+          else
+            echo "⚠️  WARNING: Memory report not found"
+          fi
+
+      - name: Comment PR with memory usage
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            let comment = '## 📊 Memory Monitoring Report\n\n';
+
+            try {
+              const reportPath = path.join(process.cwd(), 'memory-report.json');
+              if (fs.existsSync(reportPath)) {
+                const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+
+                // Build comment body
+                comment += '### Build Stages:\n\n';
+
+                if (report.stages.build) {
+                  comment += `- **Build**: Peak RSS: ${report.stages.build.rss.max}MB, Avg: ${report.stages.build.rss.avg}MB\n`;
+                }
+
+                if (report.stages.tests) {
+                  comment += `- **Tests**: Peak RSS: ${report.stages.tests.rss.max}MB, Avg: ${report.stages.tests.rss.avg}MB\n`;
+                }
+
+                if (report.stages.typecheck) {
+                  comment += `- **Type Check**: Peak RSS: ${report.stages.typecheck.rss.max}MB, Avg: ${report.stages.typecheck.rss.avg}MB\n`;
+                }
+
+                comment += '\n---\n';
+                comment += '_This report is generated automatically by the memory monitoring workflow._\n';
+              } else {
+                comment += '_Memory report not available._\n';
+              }
+            } catch (error) {
+              comment += `_Error reading memory report: ${error.message}_\n`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

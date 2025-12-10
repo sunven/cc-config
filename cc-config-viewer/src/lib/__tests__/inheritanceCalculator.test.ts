@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { calculateInheritance } from '../inheritanceCalculator'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { calculateInheritance, calculateInheritanceChain, clearInheritanceCache } from '../inheritanceCalculator'
 
 // Mock ConfigItem type for testing
 interface ConfigItem {
@@ -254,5 +254,70 @@ describe('calculateInheritance', () => {
 
     expect(result.inherited).toContainEqual({ key: 'empty', value: '' })
     expect(result.inherited).toContainEqual({ key: 'space', value: ' ' })
+  })
+})
+
+describe('calculateInheritanceChain', () => {
+  beforeEach(() => {
+    clearInheritanceCache()
+  })
+
+  it('should return inheritance chain with entries and resolved values', () => {
+    const entries = [
+      { key: 'key1', value: 'value1', source: { type: 'user', path: '/test' } },
+      { key: 'key2', value: 42, source: { type: 'project', path: '/test' } }
+    ]
+
+    const result = calculateInheritanceChain(entries as any)
+
+    expect(result.entries).toEqual(entries)
+    expect(result.resolved).toEqual({ key1: 'value1', key2: 42 })
+  })
+
+  it('should return cached result on repeated calls with same input', () => {
+    const entries = [
+      { key: 'key1', value: 'value1', source: { type: 'user', path: '/test' } }
+    ]
+
+    const result1 = calculateInheritanceChain(entries as any)
+    const result2 = calculateInheritanceChain(entries as any)
+
+    expect(result1).toBe(result2) // Same reference (cached)
+  })
+
+  it('should return different result when entries change', () => {
+    const entries1 = [
+      { key: 'key1', value: 'value1', source: { type: 'user', path: '/test' } }
+    ]
+    const entries2 = [
+      { key: 'key1', value: 'value2', source: { type: 'user', path: '/test' } }
+    ]
+
+    const result1 = calculateInheritanceChain(entries1 as any)
+    const result2 = calculateInheritanceChain(entries2 as any)
+
+    expect(result1.resolved.key1).toBe('value1')
+    expect(result2.resolved.key1).toBe('value2')
+  })
+
+  it('should handle empty entries', () => {
+    const result = calculateInheritanceChain([])
+
+    expect(result.entries).toEqual([])
+    expect(result.resolved).toEqual({})
+  })
+
+  it('should clear cache correctly', () => {
+    const entries = [
+      { key: 'key1', value: 'value1', source: { type: 'user', path: '/test' } }
+    ]
+
+    const result1 = calculateInheritanceChain(entries as any)
+    clearInheritanceCache()
+    const result2 = calculateInheritanceChain(entries as any)
+
+    // Not same reference after cache clear (new object created)
+    expect(result1).not.toBe(result2)
+    expect(result1).toEqual(result2) // But same values
   })
 })

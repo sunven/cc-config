@@ -3,7 +3,6 @@ import { useProjectsStore } from '../stores/projectsStore'
 import { useProjectComparison } from '../hooks/useProjectComparison'
 import { ProjectHealthCard } from './ProjectHealthCard'
 import { Button } from './ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { ExportButton } from './ExportButton'
 import {

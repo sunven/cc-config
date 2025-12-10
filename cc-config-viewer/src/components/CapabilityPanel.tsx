@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, memo } from 'react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -298,3 +298,16 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
     </div>
   )
 }
+
+// Memoized export with custom comparison
+export const MemoizedCapabilityPanel = memo(CapabilityPanel, (prevProps, nextProps) => {
+  // Only re-render if scope or projectName changes
+  // These are the only props that affect the data fetching
+  // Internal state changes (filters, search, etc.) don't require parent re-renders
+  return (
+    prevProps.scope === nextProps.scope &&
+    prevProps.projectName === nextProps.projectName
+  )
+})
+
+MemoizedCapabilityPanel.displayName = 'CapabilityPanel'

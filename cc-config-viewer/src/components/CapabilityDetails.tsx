@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { ScrollArea } from './ui/scroll-area'
 import { Separator } from './ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
-import { invoke } from '../lib/tauriApi'
+import { invoke } from '@tauri-apps/api/core'
 import type { UnifiedCapability } from '../types/capability'
 
 interface CapabilityDetailsProps {
