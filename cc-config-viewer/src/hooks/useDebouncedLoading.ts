@@ -49,20 +49,20 @@ export function useDebouncedLoading(
   const operationRef = useRef<(() => Promise<any>) | null>(null)
 
   // Clear any pending timeout
-  const clearTimeout = useCallback(() => {
+  const clearTimeoutRef = useCallback(() => {
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
+      window.clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
   }, [])
 
   // Stop loading and clear state
   const stopLoading = useCallback(() => {
-    clearTimeout()
+    clearTimeoutRef()
     setIsLoading(false)
     setLoadingMessage(null)
     operationRef.current = null
-  }, [clearTimeout])
+  }, [clearTimeoutRef])
 
   // Start loading with debounce
   const startLoading = useCallback(
@@ -119,9 +119,9 @@ export function useDebouncedLoading(
   // Cleanup on unmount
   React.useEffect(() => {
     return () => {
-      clearTimeout()
+      clearTimeoutRef()
     }
-  }, [clearTimeout])
+  }, [clearTimeoutRef])
 
   return {
     isLoading,
@@ -129,7 +129,7 @@ export function useDebouncedLoading(
     startLoading,
     stopLoading,
     setLoadingMessage,
-    clearTimeout,
+    clearTimeout: clearTimeoutRef,
   }
 }
 
@@ -152,7 +152,7 @@ export function useGlobalDebouncedLoading(delay: number = 200) {
 
       // Clear any existing timeout
       if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
+        window.clearTimeout(timeoutRef.current)
       }
 
       // Set timeout to actually show loading state after delay
@@ -181,7 +181,7 @@ export function useGlobalDebouncedLoading(delay: number = 200) {
 
   const stopGlobalLoading = useCallback(() => {
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
+      window.clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
     setGlobalLoading(false)

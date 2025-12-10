@@ -13,13 +13,17 @@ import { AgentList } from '@/components/AgentList'
 import { ProjectDashboard } from '@/components/ProjectDashboard'
 import { ProjectComparison } from '@/components/ProjectComparison'
 import { LoadingStates } from '@/components/LoadingStates'
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard'
+import { Button } from '@/components/ui/button'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
+import { useOnboarding } from '@/hooks/useOnboarding'
 import { useErrorHandler } from '@/hooks/useErrorHandler'
 import { useFileWatcher } from '@/hooks/useFileWatcher'
 import { detectCurrentProject } from '@/lib/projectDetection'
 import type { Project } from '@/types/project'
+import { HelpCircle } from 'lucide-react'
 
 function App() {
   // Use selectors for fine-grained subscriptions (Task 3 optimization)
@@ -29,6 +33,9 @@ function App() {
     isLoading: state.isLoading,
     loadingMessage: state.loadingMessage,
   }))
+
+  // Onboarding state
+  const { hasSeenOnboarding, resetOnboarding } = useOnboarding()
 
   // Content tab state for capability views
   const [currentContentTab, setCurrentContentTab] = useState<'config' | 'mcp' | 'agents' | 'capabilities'>('config')
@@ -49,6 +56,13 @@ function App() {
 
   // Initialize file watcher for automatic config updates
   useFileWatcher()
+
+  // Check onboarding status on app mount
+  useEffect(() => {
+    // Onboarding is shown automatically by WelcomeScreen component
+    // when hasSeenOnboarding is false
+    // No action needed here - the component handles the display logic
+  }, [hasSeenOnboarding])
 
   // Detect project on mount - only runs once
   useEffect(() => {
@@ -104,6 +118,11 @@ function App() {
     setCurrentView('comparison')
   }, [])
 
+  // Handle replay tour
+  const handleReplayTour = useCallback(() => {
+    resetOnboarding()
+  }, [resetOnboarding])
+
   // Handle content tab switching
   const switchToCapabilitiesTab = useCallback(() => {
     setCurrentContentTab('capabilities')
@@ -128,7 +147,18 @@ function App() {
           {/* Header */}
           <header className="border-b border-border px-6 py-4 flex items-center justify-between">
             <h1 className="text-xl font-semibold">cc-config</h1>
-            <ErrorBadge />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReplayTour}
+                className="flex items-center gap-2"
+              >
+                <HelpCircle className="w-4 h-4" />
+                帮助
+              </Button>
+              <ErrorBadge />
+            </div>
           </header>
 
           {/* Global Loading Overlay */}
@@ -137,6 +167,9 @@ function App() {
             message={loadingMessage}
             indicator="overlay"
           />
+
+          {/* Onboarding Wizard */}
+          <OnboardingWizard />
 
           {/* Main Content with Tab Navigation */}
           <main className="p-6 space-y-4">

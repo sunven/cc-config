@@ -30,6 +30,10 @@ interface UiStore {
     }
     lastExportPath?: string
   }
+  // Onboarding state
+  hasSeenOnboarding: boolean
+  isOnboardingActive: boolean
+  currentOnboardingStep: number
   setCurrentScope: (scope: ScopeType) => void
   setLoading: (loading: boolean) => void
   setLoadingMessage: (message: string | null) => void
@@ -45,6 +49,12 @@ interface UiStore {
   completeExport: (filePath: string) => void
   cancelExport: () => void
   resetExportState: () => void
+  // Onboarding actions
+  setOnboardingActive: (active: boolean) => void
+  setOnboardingStep: (step: number) => void
+  setHasSeenOnboarding: (hasSeen: boolean) => void
+  startOnboarding: () => void
+  completeOnboarding: () => void
 }
 
 export const useUiStore = create<UiStore>()(
@@ -69,6 +79,10 @@ export const useUiStore = create<UiStore>()(
         },
         lastExportPath: undefined,
       },
+      // Onboarding state
+      hasSeenOnboarding: false,
+      isOnboardingActive: false,
+      currentOnboardingStep: 0,
       setCurrentScope: (scope) => set({ currentScope: scope }),
       setLoading: (loading) => set({ isLoading: loading }),
       setLoadingMessage: (message) => set({ loadingMessage: message }),
@@ -125,6 +139,36 @@ export const useUiStore = create<UiStore>()(
             lastExportPath: undefined,
           },
         })),
+      // Onboarding actions
+      setOnboardingActive: (active) => set({ isOnboardingActive: active }),
+      setOnboardingStep: (step) => set({ currentOnboardingStep: step }),
+      setHasSeenOnboarding: (hasSeen) => {
+        set({ hasSeenOnboarding: hasSeen })
+        // Persist to localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const onboardingData = {
+              hasSeen,
+              version: '1.0.0',
+              completedAt: hasSeen ? new Date().toISOString() : null,
+            }
+            localStorage.setItem('cc-config-onboarding', JSON.stringify(onboardingData))
+          } catch (error) {
+            console.warn('Failed to persist onboarding status:', error)
+          }
+        }
+      },
+      startOnboarding: () =>
+        set({
+          isOnboardingActive: true,
+          currentOnboardingStep: 0,
+        }),
+      completeOnboarding: () =>
+        set({
+          hasSeenOnboarding: true,
+          isOnboardingActive: false,
+          currentOnboardingStep: 0,
+        }),
     }),
     {
       name: 'cc-config-ui-storage',
@@ -134,7 +178,9 @@ export const useUiStore = create<UiStore>()(
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
         viewMode: state.viewMode,
-        // Note: loadingMessage and isInitialLoading are NOT persisted
+        hasSeenOnboarding: state.hasSeenOnboarding,
+        currentOnboardingStep: state.currentOnboardingStep,
+        // Note: loadingMessage, isInitialLoading, and isOnboardingActive are NOT persisted
         // They are reset on app restart for clean state
       }),
       merge: (persistedState, currentState) => {
@@ -146,10 +192,22 @@ export const useUiStore = create<UiStore>()(
           currentScope: persisted && isValidScope(persisted.currentScope)
             ? persisted.currentScope
             : 'user',
+          // Validate hasSeenOnboarding - ensure it's a boolean
+          hasSeenOnboarding:
+            typeof persisted?.hasSeenOnboarding === 'boolean'
+              ? persisted.hasSeenOnboarding
+              : false,
+          // Validate currentOnboardingStep - ensure it's a number
+          currentOnboardingStep:
+            typeof persisted?.currentOnboardingStep === 'number'
+              ? Math.max(0, persisted.currentOnboardingStep)
+              : 0,
           // Reset loading state on app restart
           isLoading: false,
           loadingMessage: null,
           isInitialLoading: false,
+          // Reset onboarding state on app restart
+          isOnboardingActive: false,
         }
       },
     }

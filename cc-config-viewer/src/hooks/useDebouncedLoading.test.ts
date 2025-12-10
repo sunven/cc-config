@@ -5,15 +5,16 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { useDebouncedLoading } from './useDebouncedLoading'
+import { useDebouncedLoading, useGlobalDebouncedLoading } from './useDebouncedLoading'
+import { vi } from 'vitest'
 
 describe('useDebouncedLoading', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('should not show loading immediately without immediate flag', async () => {
@@ -31,7 +32,7 @@ describe('useDebouncedLoading', () => {
 
     // After delay, loading should be true
     act(() => {
-      jest.advanceTimersByTime(200)
+      vi.advanceTimersByTime(200)
     })
 
     expect(result.current.isLoading).toBe(true)
@@ -52,7 +53,7 @@ describe('useDebouncedLoading', () => {
   })
 
   it('should execute operation and stop loading on success', async () => {
-    const operation = jest.fn().mockResolvedValue('success')
+    const operation = vi.fn().mockResolvedValue('success')
     const { result } = renderHook(() => useDebouncedLoading({ delay: 200 }))
 
     let promise: Promise<any>
@@ -72,8 +73,8 @@ describe('useDebouncedLoading', () => {
 
   it('should stop loading on error and call error callback', async () => {
     const error = new Error('Operation failed')
-    const operation = jest.fn().mockRejectedValue(error)
-    const onError = jest.fn()
+    const operation = vi.fn().mockRejectedValue(error)
+    const onError = vi.fn()
     const { result } = renderHook(() =>
       useDebouncedLoading({ delay: 200, onError })
     )
@@ -105,7 +106,7 @@ describe('useDebouncedLoading', () => {
     })
 
     act(() => {
-      jest.advanceTimersByTime(200)
+      vi.advanceTimersByTime(200)
     })
 
     expect(result.current.isLoading).toBe(true)
@@ -135,8 +136,8 @@ describe('useDebouncedLoading', () => {
   })
 
   it('should call onComplete callback when provided', async () => {
-    const operation = jest.fn().mockResolvedValue('success')
-    const onComplete = jest.fn()
+    const operation = vi.fn().mockResolvedValue('success')
+    const onComplete = vi.fn()
     const { result } = renderHook(() =>
       useDebouncedLoading({ delay: 200, onComplete })
     )
@@ -162,7 +163,7 @@ describe('useDebouncedLoading', () => {
 
     // Should not throw
     expect(() => {
-      jest.advanceTimersByTime(200)
+      vi.advanceTimersByTime(200)
     }).not.toThrow()
   })
 
@@ -182,7 +183,7 @@ describe('useDebouncedLoading', () => {
 
     // After delay, should show the second message
     act(() => {
-      jest.advanceTimersByTime(200)
+      vi.advanceTimersByTime(200)
     })
 
     expect(result.current.isLoading).toBe(true)
@@ -192,11 +193,11 @@ describe('useDebouncedLoading', () => {
 
 describe('useGlobalDebouncedLoading', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('should use uiStore global loading state', () => {
@@ -218,7 +219,7 @@ describe('useGlobalDebouncedLoading', () => {
     expect(result.current.isLoading).toBe(false)
 
     act(() => {
-      jest.advanceTimersByTime(200)
+      vi.advanceTimersByTime(200)
     })
 
     // After delay, should be loading
@@ -234,7 +235,7 @@ describe('useGlobalDebouncedLoading', () => {
     })
 
     act(() => {
-      jest.advanceTimersByTime(200)
+      vi.advanceTimersByTime(200)
     })
 
     expect(result.current.isLoading).toBe(true)

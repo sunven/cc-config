@@ -34,9 +34,9 @@ const ConfigItem = memo(function ConfigItem({
 }: {
   config: ConfigEntry
   formatValue: (value: any) => string
-  inheritanceMap: Map<string, any>
+  inheritanceMap: Map<string, any> | null
 }) {
-  const inheritanceData = inheritanceMap.get(config.key)
+  const inheritanceData = inheritanceMap?.get(config.key)
 
   // Determine classification and display appropriate labels with inheritance chain
   const getClassificationBadge = () => {
