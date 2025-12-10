@@ -232,10 +232,10 @@ describe('ExportService', () => {
 
     it('should replace spaces with hyphens', () => {
       const result = sanitizeFilename('Test Project Name')
-      expect(result).toBe('test })
+      expect(result).toBe('test-project-name')
+    })
 
-    it('-project-name')
-   should limit length', () => {
+    it('should limit length', () => {
       const longName = 'a'.repeat(150)
       const result = sanitizeFilename(longName)
       expect(result.length).toBe(100)

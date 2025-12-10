@@ -4,7 +4,9 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { CapabilityRow } from './CapabilityRow'
 import { CapabilityDetails } from './CapabilityDetails'
+import { ExportButton } from './ExportButton'
 import { useConfigStore } from '../stores/configStore'
+import { useProjectsStore } from '../stores/projectsStore'
 import type { UnifiedCapability, CapabilityFilterState, CapabilitySortState } from '../types/capability'
 
 interface CapabilityPanelProps {
@@ -20,6 +22,16 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
     sortCapabilities,
     error
   } = useConfigStore()
+
+  const { projects } = useProjectsStore()
+
+  // Find current project if in project scope
+  const currentProject = useMemo(() => {
+    if (scope === 'project' && projectName) {
+      return projects.find(p => p.name === projectName)
+    }
+    return null
+  }, [scope, projectName, projects])
 
   const [filters, setFilters] = useState<CapabilityFilterState>({
     type: 'all'
@@ -143,9 +155,19 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
         <h2 className="text-2xl font-bold">
           Capabilities <span className="text-sm font-normal text-muted-foreground">({scope} scope)</span>
         </h2>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+        <div className="flex items-center space-x-2">
+          <ExportButton
+            source="project"
+            data={currentProject}
+            variant="outline"
+            size="sm"
+          >
+            导出能力
+          </ExportButton>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
       </div>
 
       {/* Error Display */}

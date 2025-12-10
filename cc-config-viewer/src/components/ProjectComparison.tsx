@@ -4,6 +4,7 @@ import { ComparisonPanel } from './ComparisonPanel'
 import { SummaryBadge } from './SummaryBadge'
 import { FilterControls } from './FilterControls'
 import { Button } from './ui/button'
+import { ExportButton } from './ExportButton'
 import { X, GitCompare } from 'lucide-react'
 import { filterDifferences } from '../lib/highlightEngine'
 import type { DiscoveredProject } from '../types/project'
@@ -77,6 +78,18 @@ export function ProjectComparison({ className }: ProjectComparisonProps) {
           {highlighting && <SummaryBadge />}
         </div>
         <div className="flex items-center space-x-2">
+          <ExportButton
+            source="comparison"
+            data={{
+              leftProject,
+              rightProject,
+              diffResults: filteredDiffResults,
+            }}
+            variant="outline"
+            size="sm"
+          >
+            导出比较
+          </ExportButton>
           {highlighting && <FilterControls />}
           <Button variant="ghost" size="sm" onClick={clearComparison}>
             <X className="h-4 w-4 mr-1" />

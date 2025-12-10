@@ -14,11 +14,17 @@ import type { DiscoveredProject } from '../types/project'
 import type { DiffResult } from '../types/comparison'
 import { Download, Copy, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
+type ExportData = DiscoveredProject | {
+  leftProject: DiscoveredProject
+  rightProject: DiscoveredProject
+  diffResults: DiffResult[]
+}
+
 interface ExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   source: 'project' | 'comparison'
-  data: DiscoveredProject | { leftProject: DiscoveredProject; rightProject: DiscoveredProject; diffResults: DiffResult[] } | null
+  data: ExportData | null
   onExportComplete?: (result: ExportResult) => void
 }
 
@@ -65,7 +71,7 @@ export function ExportDialog({
   useEffect(() => {
     if (data && open) {
       try {
-        const preview = createExportPreview(source, data as any, options)
+        const preview = createExportPreview(source, data as ExportData, options)
         setState((prev) => ({ ...prev, preview, error: null }))
       } catch (error) {
         setState((prev) => ({
@@ -91,11 +97,27 @@ export function ExportDialog({
     setState((prev) => ({ ...prev, isExporting: true, error: null }))
 
     try {
-      const result = await exportConfiguration(source, data as any, options)
+      const result = await exportConfiguration(source, data as ExportData, options)
 
       if (result.success && result.content) {
         if (method === 'clipboard') {
           await navigator.clipboard.writeText(result.content)
+        } else if (method === 'download') {
+          // Generate filename with timestamp
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+          const sourceLabel = getSourceLabel().replace(/[^a-z0-9]/gi, '-').toLowerCase()
+          const filename = `${sourceLabel}-config-${timestamp}.${options.format}`
+
+          // Create blob and trigger download
+          const blob = new Blob([result.content], { type: 'text/plain' })
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
         }
 
         setState((prev) => ({
@@ -125,9 +147,12 @@ export function ExportDialog({
   const getSourceLabel = () => {
     if (!data) return ''
     if (source === 'project') {
-      return (data as DiscoveredProject).name
+      return data.name
     } else {
-      const comparison = data as any
+      const comparison = data as {
+        leftProject: DiscoveredProject
+        rightProject: DiscoveredProject
+      }
       return `${comparison.leftProject.name} vs ${comparison.rightProject.name}`
     }
   }

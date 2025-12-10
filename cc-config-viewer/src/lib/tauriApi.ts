@@ -168,3 +168,49 @@ export async function refreshAllProjectHealth(
     throw convertRustError(error)
   }
 }
+
+// Export commands (Story 5.5)
+export interface ExportResult {
+  success: boolean
+  file_path?: string
+  content?: string
+  format: string
+  error?: {
+    type: string
+    message: string
+    details?: any
+  }
+  stats?: {
+    recordCount: number
+    fileSize: number
+    duration: number
+  }
+}
+
+export async function saveExportFile(
+  content: string,
+  filename: string,
+  format: string
+): Promise<ExportResult> {
+  try {
+    return await invoke<ExportResult>('save_export_file', { content, filename, format })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function getDownloadsPath(): Promise<string> {
+  try {
+    return await invoke<string>('get_downloads_path')
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}
+
+export async function validateExportData(data: any): Promise<{ isValid: boolean; errors?: string[] }> {
+  try {
+    return await invoke<{ isValid: boolean; errors?: string[] }>('validate_export_data', { data })
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}

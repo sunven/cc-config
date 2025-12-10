@@ -5,6 +5,7 @@ import { ProjectHealthCard } from './ProjectHealthCard'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
+import { ExportButton } from './ExportButton'
 import {
   Activity,
   Filter,
@@ -271,6 +272,14 @@ export function ProjectDashboard({ className, onViewCapabilities }: ProjectDashb
           )}
         </div>
         <div className="flex items-center space-x-2">
+          <ExportButton
+            source="project"
+            data={projects.length === 1 ? projects[0] : null}
+            variant="outline"
+            size="sm"
+          >
+            导出项目
+          </ExportButton>
           <Button
             variant="outline"
             size="sm"
