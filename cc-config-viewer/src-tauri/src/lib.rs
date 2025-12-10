@@ -9,6 +9,11 @@ use commands::project_commands::{
     list_projects, scan_projects, watch_projects, health_check_project, calculate_health_metrics,
     refresh_all_project_health,
 };
+use commands::export_commands::{
+    save_export_file, get_downloads_path, validate_export_data, generate_export_filename,
+    export_project_config, export_comparison_data, check_export_permissions,
+    get_export_file_info, delete_export_file, list_export_files,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -42,7 +47,17 @@ pub fn run() {
             watch_projects,
             health_check_project,
             calculate_health_metrics,
-            refresh_all_project_health
+            refresh_all_project_health,
+            save_export_file,
+            get_downloads_path,
+            validate_export_data,
+            generate_export_filename,
+            export_project_config,
+            export_comparison_data,
+            check_export_permissions,
+            get_export_file_info,
+            delete_export_file,
+            list_export_files
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

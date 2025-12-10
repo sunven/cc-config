@@ -14,12 +14,31 @@ interface UiStore {
   theme: 'light' | 'dark'
   // View mode for inheritance display
   viewMode: 'merged' | 'split'
+  // Export state
+  export: {
+    isExporting: boolean
+    exportProgress: number
+    exportFormat: 'json' | 'markdown' | 'csv'
+    exportOptions: {
+      includeInherited: boolean
+      includeMCP: boolean
+      includeAgents: boolean
+      includeMetadata: boolean
+    }
+    lastExportPath?: string
+  }
   setCurrentScope: (scope: ScopeType) => void
   setLoading: (loading: boolean) => void
   setSidebarOpen: (open: boolean) => void
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
   setViewMode: (mode: 'merged' | 'split') => void
+  // Export actions
+  startExport: (format: 'json' | 'markdown' | 'csv', options: any) => void
+  setExportProgress: (progress: number) => void
+  completeExport: (filePath: string) => void
+  cancelExport: () => void
+  resetExportState: () => void
 }
 
 export const useUiStore = create<UiStore>()(
@@ -30,6 +49,18 @@ export const useUiStore = create<UiStore>()(
       sidebarOpen: true,
       theme: 'light',
       viewMode: 'merged',
+      export: {
+        isExporting: false,
+        exportProgress: 0,
+        exportFormat: 'json',
+        exportOptions: {
+          includeInherited: true,
+          includeMCP: true,
+          includeAgents: true,
+          includeMetadata: true,
+        },
+        lastExportPath: undefined,
+      },
       setCurrentScope: (scope) => set({ currentScope: scope }),
       setLoading: (loading) => set({ isLoading: loading }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -37,6 +68,49 @@ export const useUiStore = create<UiStore>()(
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setViewMode: (mode) => set({ viewMode: mode }),
+      startExport: (format, options) =>
+        set((state) => ({
+          export: {
+            ...state.export,
+            isExporting: true,
+            exportProgress: 0,
+            exportFormat: format,
+            exportOptions: options,
+          },
+        })),
+      setExportProgress: (progress) =>
+        set((state) => ({
+          export: {
+            ...state.export,
+            exportProgress: progress,
+          },
+        })),
+      completeExport: (filePath) =>
+        set((state) => ({
+          export: {
+            ...state.export,
+            isExporting: false,
+            exportProgress: 100,
+            lastExportPath: filePath,
+          },
+        })),
+      cancelExport: () =>
+        set((state) => ({
+          export: {
+            ...state.export,
+            isExporting: false,
+            exportProgress: 0,
+          },
+        })),
+      resetExportState: () =>
+        set((state) => ({
+          export: {
+            ...state.export,
+            isExporting: false,
+            exportProgress: 0,
+            lastExportPath: undefined,
+          },
+        })),
     }),
     {
       name: 'cc-config-ui-storage',

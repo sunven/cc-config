@@ -85,8 +85,8 @@ development_status:
   5-1-project-discovery-and-listing: done
   5-2-side-by-side-comparison-view: done
   5-3-difference-highlighting: review (code审核完成，需验证)
-  5-4-project-health-dashboard: in-progress
-  5-5-configuration-export: backlog
+  5-4-project-health-dashboard: done
+  5-5-configuration-export: review
   epic-5-retrospective: optional
 
   # Epic 6: Error Handling & User Experience
