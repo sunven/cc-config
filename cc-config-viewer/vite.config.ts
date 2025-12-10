@@ -6,6 +6,9 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // https://vitejs.dev/config/
 export default defineConfig(() => {
   return {
+    server: {
+      port: 1420,
+    },
     plugins: [
       react(),
       // Bundle analyzer - generates stats.html on build
