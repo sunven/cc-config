@@ -11,6 +11,9 @@ import { McpList } from '@/components/McpList'
 import { AgentList } from '@/components/AgentList'
 import { LoadingStates } from '@/components/LoadingStates'
 import { Button } from '@/components/ui/button'
+import { SkipLink } from '@/components/Accessibility/SkipLink'
+import { LiveRegionProvider } from '@/components/Accessibility/LiveRegion'
+import { LanguageSwitcher } from '@/components/Language/LanguageSwitcher'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -27,6 +30,7 @@ import {
 import { enableAutoPerformanceLogging, logPerformanceSummary } from '@/lib/performanceLogger'
 import type { Project } from '@/types/project'
 import { HelpCircle } from 'lucide-react'
+import '@/lib/i18n'
 
 // Lazy load heavy components for code splitting
 const CapabilityPanel = lazy(() => import('@/components/CapabilityPanel').then(m => ({ default: m.CapabilityPanel })))
@@ -257,24 +261,28 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <TooltipProvider>
-        <div className="min-h-screen bg-background text-foreground">
-          {/* Header */}
-          <header className="border-b border-border px-6 py-4 flex items-center justify-between">
-            <h1 className="text-xl font-semibold">cc-config</h1>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReplayTour}
-                className="flex items-center gap-2"
-              >
-                <HelpCircle className="w-4 h-4" />
-                帮助
-              </Button>
-              <ErrorBadge />
-            </div>
-          </header>
+      <LiveRegionProvider>
+        <TooltipProvider>
+          <SkipLink targetId="main-content" />
+          <div className="min-h-screen bg-background text-foreground">
+            {/* Header */}
+            <header className="border-b border-border px-6 py-4 flex items-center justify-between" role="banner">
+              <h1 className="text-xl font-semibold">cc-config</h1>
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReplayTour}
+                  className="flex items-center gap-2"
+                  aria-label="帮助"
+                >
+                  <HelpCircle className="w-4 h-4" aria-hidden="true" />
+                  <span className="sr-only">帮助</span>
+                </Button>
+                <ErrorBadge />
+              </div>
+            </header>
 
           {/* Global Loading Overlay */}
           <LoadingStates
@@ -289,7 +297,7 @@ function App() {
           </Suspense>
 
           {/* Main Content with Tab Navigation */}
-          <main className="p-6 space-y-4">
+          <main id="main-content" className="p-6 space-y-4" role="main">
             {/* Error Display Area */}
             <ErrorDisplay maxErrors={3} />
 
@@ -388,7 +396,8 @@ function App() {
             )}
           </main>
         </div>
-      </TooltipProvider>
+        </TooltipProvider>
+      </LiveRegionProvider>
     </ErrorBoundary>
   )
 }

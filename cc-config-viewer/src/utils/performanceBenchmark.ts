@@ -163,15 +163,16 @@ export class PerformanceBenchmark {
         const { createBatchUpdater } = await import('../lib/batchUpdater')
 
         let updateCount = 0
-        const batchUpdater = createBatchUpdater(() => {
-          updateCount++
+        const batchUpdater = createBatchUpdater((updates: (() => void)[]) => {
+          updates.forEach(fn => fn())
+          updateCount += updates.length
         }, 16)  // 16ms debounce
 
         const startTime = performance.now()
 
         // Trigger multiple updates
         for (let i = 0; i < 100; i++) {
-          batchUpdater()
+          batchUpdater.add(() => {})
         }
 
         // Wait for batch to complete

@@ -5,8 +5,10 @@ import { Badge } from './ui/badge'
 import { CapabilityRow } from './CapabilityRow'
 import { CapabilityDetails } from './CapabilityDetails'
 import { ExportButton } from './ExportButton'
+import { VirtualizedList } from './VirtualizedList'
 import { useConfigStore } from '../stores/configStore'
 import { useProjectsStore } from '../stores/projectsStore'
+import { useVirtualizedList } from '../hooks/useVirtualizedList'
 import type { UnifiedCapability, CapabilityFilterState, CapabilitySortState } from '../types/capability'
 
 interface CapabilityPanelProps {
@@ -112,6 +114,14 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
     }
     return counts
   }, [capabilities])
+
+  // Use virtualization for large capability lists
+  const { shouldVirtualize, handleScroll } = useVirtualizedList({
+    count: processedCapabilities.length,
+    estimateSize: 100, // Approximate height of each capability row
+    threshold: 50,
+    enabled: true
+  })
 
   const handleSort = (field: CapabilitySortState['field']) => {
     setSort(prev => ({
@@ -266,7 +276,24 @@ export const CapabilityPanel: React.FC<CapabilityPanelProps> = ({ scope, project
       </div>
 
       {/* Capability List */}
-      {processedCapabilities.length > 0 ? (
+      {processedCapabilities.length > 0 ? shouldVirtualize ? (
+        <VirtualizedList
+          count={processedCapabilities.length}
+          height={500}
+          estimateSize={100}
+          overscan={5}
+          onScroll={handleScroll}
+          className="border rounded"
+        >
+          {(index) => (
+            <CapabilityRow
+              key={processedCapabilities[index].id}
+              capability={processedCapabilities[index]}
+              onClick={() => handleCapabilityClick(processedCapabilities[index])}
+            />
+          )}
+        </VirtualizedList>
+      ) : (
         <div className="grid gap-3">
           {processedCapabilities.map((capability) => (
             <CapabilityRow

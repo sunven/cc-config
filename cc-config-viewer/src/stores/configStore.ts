@@ -13,7 +13,7 @@ import { calculateInheritance } from '../lib/inheritanceCalculator'
 import { calculateStats } from '../utils/statsCalculator'
 import { unifyCapabilities, filterCapabilities as filterUnifiedCapabilities, sortCapabilities as sortUnifiedCapabilities } from '../lib/capabilityUnifier'
 import { calculateCapabilityStats } from '../lib/capabilityStats'
-import '../types/weakref'
+// weakref types are global, imported via typescript's DOM library or weakref.d.ts
 
 // Cache entry with WeakRef for automatic garbage collection
 interface CacheEntry<T> {

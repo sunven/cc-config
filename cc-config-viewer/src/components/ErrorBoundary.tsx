@@ -37,6 +37,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
     useErrorStore.getState().addError(appError)
 
+    // Announce error to screen readers
+    const liveRegion = document.getElementById('live-region-assertive')
+    if (liveRegion) {
+      liveRegion.textContent = `Error: ${error.message}`
+      setTimeout(() => {
+        liveRegion.textContent = ''
+      }, 1000)
+    }
+
     // Call optional error callback
     this.props.onError?.(error, errorInfo)
   }
@@ -95,7 +104,12 @@ export function ErrorFallback({ error, onRetry }: ErrorFallbackProps) {
   const localizedError = getErrorMessage(appError)
 
   return (
-    <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-lg max-w-lg mx-auto">
+    <div
+      className="p-6 bg-destructive/10 border border-destructive/20 rounded-lg max-w-lg mx-auto"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
       <h2 className="text-lg font-semibold text-destructive mb-2">
         {localizedError.title}
       </h2>
@@ -119,6 +133,7 @@ export function ErrorFallback({ error, onRetry }: ErrorFallbackProps) {
           <button
             className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
             onClick={onRetry}
+            aria-label="重试"
           >
             重试
           </button>
@@ -126,6 +141,7 @@ export function ErrorFallback({ error, onRetry }: ErrorFallbackProps) {
         <button
           className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
           onClick={() => window.location.reload()}
+          aria-label="刷新页面"
         >
           刷新页面
         </button>

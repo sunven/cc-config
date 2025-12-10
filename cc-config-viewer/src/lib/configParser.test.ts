@@ -301,7 +301,8 @@ describe('configParser', () => {
         description: 'File system operations',
         config: {
           command: 'npx',
-          args: ['-y', '@modelcontextprotocol/server-filesystem']
+          args: ['-y', '@modelcontextprotocol/server-filesystem'],
+          description: 'File system operations'
         },
         status: 'inactive',
         sourcePath: '/home/user/.claude.json'
@@ -311,7 +312,8 @@ describe('configParser', () => {
         type: 'http',
         description: 'PostgreSQL database',
         config: {
-          url: 'http://localhost:5432'
+          url: 'http://localhost:5432',
+          description: 'PostgreSQL database'
         },
         status: 'inactive',
         sourcePath: '/home/user/.claude.json'
@@ -342,7 +344,8 @@ describe('configParser', () => {
         description: 'Git operations',
         config: {
           command: 'python',
-          args: ['mcp-git-server.py']
+          args: ['mcp-git-server.py'],
+          description: 'Git operations'
         },
         status: 'inactive',
         sourcePath: './.mcp.json'
@@ -352,7 +355,8 @@ describe('configParser', () => {
         type: 'http',
         description: 'SSE server',
         config: {
-          url: 'https://api.example.com/events'
+          url: 'https://api.example.com/events',
+          description: 'SSE server'
         },
         status: 'inactive',
         sourcePath: './.mcp.json'

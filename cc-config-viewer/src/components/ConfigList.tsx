@@ -4,8 +4,10 @@ import type { ConfigEntry } from '../types'
 import { Badge } from './ui/badge'
 import { SourceIndicator } from './SourceIndicator'
 import { ConfigSkeleton } from './ConfigSkeleton'
+import { VirtualizedList } from './VirtualizedList'
 import { useConfigStore } from '../stores/configStore'
 import { useUiStore } from '../stores/uiStore'
+import { useVirtualizedList } from '../hooks/useVirtualizedList'
 
 /**
  * Virtualization threshold - consider implementing react-window if list exceeds this.
@@ -120,14 +122,6 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
   // Get inheritance data from store
   const inheritanceMap = useConfigStore((state) => state.inheritanceMap)
 
-  // Log warning if list is large (future optimization opportunity)
-  if (process.env.NODE_ENV === 'development' && configs.length > VIRTUALIZATION_THRESHOLD) {
-    console.warn(
-      `[ConfigList] Large list detected (${configs.length} items). ` +
-      `Consider implementing virtualization for lists > ${VIRTUALIZATION_THRESHOLD} items.`
-    )
-  }
-
   // Memoize helper functions to prevent re-creation on each render
   const formatValue = useMemo(() => (value: any) => {
     if (typeof value === 'object') {
@@ -135,6 +129,14 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
     }
     return String(value)
   }, [])
+
+  // Use virtualization for large lists
+  const { shouldVirtualize, handleScroll } = useVirtualizedList({
+    count: configs.length,
+    estimateSize: 80, // Approximate height of each config item
+    threshold: VIRTUALIZATION_THRESHOLD,
+    enabled: true
+  })
 
   if (isLoading) {
     return (
@@ -161,6 +163,24 @@ export const ConfigList: React.FC<ConfigListProps> = memo(function ConfigList({
       <h2 className="text-lg font-semibold mb-4">{title}</h2>
       {configs.length === 0 ? (
         <p className="text-gray-500 text-sm">No configuration entries found</p>
+      ) : shouldVirtualize ? (
+        <VirtualizedList
+          count={configs.length}
+          height={400}
+          estimateSize={80}
+          overscan={10}
+          onScroll={handleScroll}
+          className="border rounded"
+        >
+          {(index) => (
+            <ConfigItem
+              key={configs[index].key}
+              config={configs[index]}
+              formatValue={formatValue}
+              inheritanceMap={inheritanceMap}
+            />
+          )}
+        </VirtualizedList>
       ) : (
         <div className="space-y-2">
           {configs.map((config) => (

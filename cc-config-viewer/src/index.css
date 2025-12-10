@@ -175,6 +175,98 @@ button:focus-visible {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* High Contrast Mode (WCAG 2.1 AA/AAA compliant) */
+.high-contrast,
+:where(body:has(.high-contrast)) {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #000000;
+  --card-foreground: #ffffff;
+  --popover: #000000;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #ffffff;
+  --accent: #1a1a1a;
+  --accent-foreground: #ffffff;
+  --destructive: #ff0000;
+  --border: #ffffff;
+  --input: #1a1a1a;
+  --ring: #ffffff;
+  --chart-1: #00ffff;
+  --chart-2: #ffff00;
+  --chart-3: #ff00ff;
+  --chart-4: #00ff00;
+  --chart-5: #ff8800;
+}
+
+.dark.high-contrast {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #e5e5e5;
+  --secondary-foreground: #000000;
+  --muted: #e5e5e5;
+  --muted-foreground: #000000;
+  --accent: #e5e5e5;
+  --accent-foreground: #000000;
+  --destructive: #cc0000;
+  --border: #000000;
+  --input: #e5e5e5;
+  --ring: #000000;
+  --chart-1: #0066cc;
+  --chart-2: #cc6600;
+  --chart-3: #cc0066;
+  --chart-4: #00cc66;
+  --chart-5: #6600cc;
+}
+
+/* Enhanced Focus Indicators (WCAG 2.4.7) */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Focus styles for high contrast mode */
+.high-contrast *:focus {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 2px !important;
+}
+
+.dark.high-contrast *:focus {
+  outline: 3px solid #ff00ff !important;
+  outline-offset: 2px !important;
+}
+
+/* Skip link focus - always visible */
+.skip-link:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Dialog focus trap styles */
+[role="dialog"]:focus {
+  outline: none;
+}
+
+[role="dialog"] *:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

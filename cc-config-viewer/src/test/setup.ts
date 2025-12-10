@@ -12,6 +12,19 @@ global.ResizeObserver = class ResizeObserver {
 // Mock scrollIntoView for cmdk
 Element.prototype.scrollIntoView = vi.fn()
 
+// Mock performance.memory for memory profiling tests (can be overridden by individual tests)
+if (!('memory' in performance)) {
+  Object.defineProperty(performance, 'memory', {
+    writable: true,
+    configurable: true,
+    value: {
+      usedJSHeapSize: 50 * 1024 * 1024, // 50 MB
+      totalJSHeapSize: 100 * 1024 * 1024, // 100 MB
+      jsHeapSizeLimit: 500 * 1024 * 1024, // 500 MB
+    },
+  })
+}
+
 // Mock Tauri APIs globally for all tests
 // This prevents errors when components use Tauri functions in tests
 

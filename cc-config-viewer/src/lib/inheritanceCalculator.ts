@@ -1,5 +1,5 @@
 import type { ConfigEntry, InheritanceChain } from '../types'
-import '../types/weakref'
+// weakref types are global, imported via typescript's DOM library or weakref.d.ts
 import equal from 'fast-deep-equal'
 
 // Memoization cache for inheritance chain calculations with WeakRef
