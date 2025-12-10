@@ -47,12 +47,18 @@ export async function exportConfiguration(
     // Validate input data
     const validation = validateExportData(source, data)
     if (!validation.isValid) {
+      const duration = performance.now() - startTime
       return {
         success: false,
         format: options.format,
         error: {
           type: 'validation',
           message: `Export validation failed: ${validation.errors.join(', ')}`,
+        },
+        stats: {
+          recordCount: 0,
+          fileSize: 0,
+          duration,
         },
       }
     }
@@ -274,10 +280,29 @@ function extractConfigurations(data: any): any {
     return data.configurations
   }
 
+  // Extract MCP servers and agents from project data
+  const mcp = Array.isArray(data.mcpServers)
+    ? data.mcpServers.map((name: string) => ({
+        name,
+        source: 'project',
+        config: {},
+        inheritedFrom: null,
+      }))
+    : []
+
+  const agents = Array.isArray(data.subAgents)
+    ? data.subAgents.map((name: string) => ({
+        name,
+        source: 'project',
+        permissions: {},
+        inheritedFrom: null,
+      }))
+    : []
+
   // Default structure if not provided
   return {
-    mcp: [],
-    agents: [],
+    mcp,
+    agents,
     inherited: [],
   }
 }

@@ -70,7 +70,7 @@ describe('AgentList', () => {
   ]
 
   it('renders list of agents', () => {
-    vi.mocked(require('../stores/configStore').useConfigStore).mockReturnValue({
+    vi.mocked(require('../stores/configStore.ts').useConfigStore).mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
         user: [mockAgents[0], mockAgents[2]],
@@ -90,7 +90,7 @@ describe('AgentList', () => {
   })
 
   it('displays empty state when no agents found', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: [],
       agentsByScope: {
@@ -109,7 +109,7 @@ describe('AgentList', () => {
   })
 
   it('sorts agents by name', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -132,7 +132,7 @@ describe('AgentList', () => {
   })
 
   it('filters agents by source', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -155,7 +155,7 @@ describe('AgentList', () => {
   })
 
   it('filters agents by permissions type', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -177,7 +177,7 @@ describe('AgentList', () => {
   })
 
   it('filters agents by status', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -201,7 +201,7 @@ describe('AgentList', () => {
   })
 
   it('searches agents by name', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -223,7 +223,7 @@ describe('AgentList', () => {
   })
 
   it('shows results count', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -242,7 +242,7 @@ describe('AgentList', () => {
   })
 
   it('has clear filters button', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -264,7 +264,7 @@ describe('AgentList', () => {
   })
 
   it('displays error state', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: [],
       agentsByScope: {
@@ -284,7 +284,7 @@ describe('AgentList', () => {
   })
 
   it('has retry button in error state', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: [],
       agentsByScope: {
@@ -303,7 +303,7 @@ describe('AgentList', () => {
   })
 
   it('calls updateAgents on mount', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     const mockUpdateAgents = vi.fn()
     mockUseConfigStore.mockReturnValue({
       agents: [],
@@ -323,7 +323,7 @@ describe('AgentList', () => {
   })
 
   it('has sort controls', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -346,7 +346,7 @@ describe('AgentList', () => {
   })
 
   it('has filter controls', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {
@@ -368,7 +368,7 @@ describe('AgentList', () => {
   })
 
   it('has refresh button', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: [],
       agentsByScope: {
@@ -387,7 +387,7 @@ describe('AgentList', () => {
   })
 
   it('displays scope in header', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: [],
       agentsByScope: {
@@ -407,7 +407,7 @@ describe('AgentList', () => {
   })
 
   it('handles pagination', () => {
-    const mockUseConfigStore = vi.mocked(require('../stores/configStore').useConfigStore)
+    const mockUseConfigStore = vi.mocked(require('../stores/configStore.ts').useConfigStore)
     mockUseConfigStore.mockReturnValue({
       agents: mockAgents,
       agentsByScope: {

@@ -11,9 +11,13 @@ import type { ExportFormat, ExportOptions } from '../types/export'
 import type { DiscoveredProject } from '../types/project'
 import type { DiffResult } from '../types/comparison'
 
-// Mock performance.now
+// Mock performance.now to track duration
+let callCount = 0
 vi.stubGlobal('performance', {
-  now: vi.fn(() => 100),
+  now: vi.fn(() => {
+    callCount++
+    return callCount * 10 // Returns 10, 20, 30, etc.
+  }),
 })
 
 describe('ExportService', () => {
@@ -222,7 +226,7 @@ describe('ExportService', () => {
   describe('sanitizeFilename', () => {
     it('should sanitize filename with special characters', () => {
       const result = sanitizeFilename('test/project<>:"name.json')
-      expect(result).toBe('test_project___name.json')
+      expect(result).toBe('test_project____name.json')
     })
 
     it('should convert to lowercase', () => {
@@ -271,7 +275,9 @@ describe('ExportService', () => {
 
     it('should handle project names with special characters', () => {
       const filename = generateExportFilename('Test/Project<>', 'json')
-      expect(filename).toMatch(/^test_project___-config-\d{4}-\d{2}-\d{2}\.json$/)
+      // Check that it has the right structure - 3 total underscores with 2 between project and -config-
+      expect(filename).toMatch(/^test_project_{2}-config-\d{4}-\d{2}-\d{2}\.json$/)
+      expect((filename.match(/_/g) || []).length).toBe(3)
     })
   })
 

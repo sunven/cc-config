@@ -12,7 +12,7 @@ import {
   getConfigSource
 } from '../inheritanceCalculator'
 import { createBatchUpdater, debounce, throttle } from '../batchUpdater'
-import { useUiStore } from '../uiStore'
+import { useUiStore } from '../../stores/uiStore'
 import { useConfigStore } from '../../stores/configStore'
 
 describe('Memoization Logic Tests', () => {
@@ -192,15 +192,15 @@ describe('Memoization Logic Tests', () => {
       let updateCount = 0
       const updates: number[] = []
 
-      const batchUpdater = createBatchUpdater((value: number) => {
+      const batchUpdater = createBatchUpdater<number>((values: number[]) => {
         updateCount++
-        updates.push(value)
+        values.forEach(v => updates.push(v))
       }, 16)
 
       // Trigger multiple updates
-      batchUpdater(1)
-      batchUpdater(2)
-      batchUpdater(3)
+      batchUpdater.add(1)
+      batchUpdater.add(2)
+      batchUpdater.add(3)
 
       // Wait for debounce
       await new Promise(resolve => setTimeout(resolve, 50))
@@ -213,14 +213,14 @@ describe('Memoization Logic Tests', () => {
     it('should use latest value in batch', async () => {
       let lastValue: number | null = null
 
-      const batchUpdater = createBatchUpdater((value: number) => {
-        lastValue = value
+      const batchUpdater = createBatchUpdater<number>((values: number[]) => {
+        lastValue = values[values.length - 1]
       }, 16)
 
       // Trigger multiple updates
-      batchUpdater(1)
-      batchUpdater(2)
-      batchUpdater(3)
+      batchUpdater.add(1)
+      batchUpdater.add(2)
+      batchUpdater.add(3)
 
       // Wait for debounce
       await new Promise(resolve => setTimeout(resolve, 50))
@@ -232,12 +232,12 @@ describe('Memoization Logic Tests', () => {
     it('should support custom debounce intervals', async () => {
       let updateCount = 0
 
-      const batchUpdater = createBatchUpdater(() => {
+      const batchUpdater = createBatchUpdater<number>(() => {
         updateCount++
       }, 100) // 100ms debounce
 
-      batchUpdater(1)
-      batchUpdater(2)
+      batchUpdater.add(1)
+      batchUpdater.add(2)
 
       // Wait 50ms (less than debounce)
       await new Promise(resolve => setTimeout(resolve, 50))
@@ -454,15 +454,16 @@ describe('Memoization Logic Tests', () => {
       const startTime = performance.now()
 
       let updateCount = 0
-      const batchUpdater = createBatchUpdater(() => {
+      const batchUpdater = createBatchUpdater<number>(() => {
         updateCount++
-      }, 16)
+      }, 16, 1000) // Set max batch size to 1000
 
       // Do 1000 operations
       for (let i = 0; i < 1000; i++) {
-        batchUpdater(i)
+        batchUpdater.add(i)
       }
 
+      // Wait for debounce
       await new Promise(resolve => setTimeout(resolve, 50))
 
       const endTime = performance.now()
@@ -471,7 +472,7 @@ describe('Memoization Logic Tests', () => {
       // Should complete efficiently (within 100ms)
       expect(duration).toBeLessThan(100)
 
-      // Should have one update
+      // Should have one update (with large enough batch size)
       expect(updateCount).toBe(1)
 
       console.log(`1000 batched operations completed in ${duration.toFixed(2)}ms`)

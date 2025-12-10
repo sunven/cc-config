@@ -4,18 +4,25 @@
  * Validates AC9: trace operations <100ms
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { sourceTracker } from './sourceTracker'
+import * as tauriCore from '@tauri-apps/api/core'
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
+  copy_to_clipboard: vi.fn(),
 }))
 
 describe('Performance Benchmarks - Story 3.4', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    sourceTracker.clearCache()
+  })
+
   describe('Source location lookup performance', () => {
     it('should complete trace source operation within 100ms (AC9)', async () => {
-      const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
+      const mockInvoke = vi.mocked(tauriCore.invoke)
 
       // Mock quick response
       mockInvoke.mockResolvedValue({
@@ -37,7 +44,7 @@ describe('Performance Benchmarks - Story 3.4', () => {
     })
 
     it('should cache source locations for fast subsequent lookups', async () => {
-      const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
+      const mockInvoke = vi.mocked(tauriCore.invoke)
 
       // First call - mock response
       mockInvoke.mockResolvedValue({
@@ -64,7 +71,7 @@ describe('Performance Benchmarks - Story 3.4', () => {
     })
 
     it('should handle multiple parallel trace requests efficiently', async () => {
-      const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
+      const mockInvoke = vi.mocked(tauriCore.invoke)
 
       mockInvoke.mockImplementation(async (cmd: string, args: any) => {
         // Simulate async operation
@@ -98,7 +105,7 @@ describe('Performance Benchmarks - Story 3.4', () => {
   describe('External editor performance', () => {
     it('should open editor within 100ms (AC9)', async () => {
       const { openFileInEditor } = await import('./externalEditorLauncher')
-      const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
+      const mockInvoke = vi.mocked(tauriCore.invoke)
 
       // Mock implementation for Tauri invoke
       mockInvoke.mockImplementation(async (cmd: string, args: any) => {
@@ -144,7 +151,7 @@ describe('Performance Benchmarks - Story 3.4', () => {
 
   describe('Memory usage', () => {
     it('should not grow cache indefinitely', async () => {
-      const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
+      const mockInvoke = vi.mocked(tauriCore.invoke)
 
       mockInvoke.mockResolvedValue({
         file_path: '/test/.claude.json',
@@ -173,7 +180,7 @@ describe('Performance Benchmarks - Story 3.4', () => {
 
   describe('Integration performance', () => {
     it('should handle complete trace workflow within AC9 limits', async () => {
-      const mockInvoke = vi.mocked(await import('@tauri-apps/api/core')).invoke
+      const mockInvoke = vi.mocked(tauriCore.invoke)
 
       mockInvoke.mockImplementation(async (cmd: string, args: any) => {
         // Simulate realistic trace operation
@@ -191,9 +198,8 @@ describe('Performance Benchmarks - Story 3.4', () => {
       const location = await sourceTracker.traceSource('integrationKey', ['/home/user/.claude.json'])
       expect(location).toBeDefined()
 
-      const { copy_to_clipboard } = await import('@tauri-apps/api/core')
       if (location) {
-        await copy_to_clipboard(location.file_path)
+        await tauriCore.copy_to_clipboard(location.file_path)
       }
 
       const endTime = performance.now()

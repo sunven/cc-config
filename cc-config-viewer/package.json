@@ -37,7 +37,8 @@
     "prettier": "^3.4.2",
     "rollup-plugin-visualizer": "^6.0.5",
     "typescript-eslint": "^8.18.1",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.15",
+    "vitest-axe": "^0.1.0"
   },
   "dependencies": {
     "@axe-core/react": "^4.11.0",

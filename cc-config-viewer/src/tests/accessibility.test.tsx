@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { axe, toHaveNoViolations } from 'jest-axe'
+import { axe } from 'vitest-axe'
+import * as matchers from 'vitest-axe/matchers'
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -11,8 +12,8 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { ZoomControls } from '@/components/ZoomControls'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 
-// Extend expect to include jest-axe matchers
-expect.extend(toHaveNoViolations)
+// Extend expect to include vitest-axe matchers
+expect.extend(matchers)
 
 describe('Accessibility Tests', () => {
   describe('Button Component', () => {

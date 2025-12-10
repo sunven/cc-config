@@ -5,22 +5,23 @@
  */
 
 import React from 'react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SourceTraceContext } from './SourceTraceContext'
 
 // Mock the sourceTracker and externalEditorLauncher
-jest.mock('../../utils/sourceTracker', () => ({
+vi.mock('../../utils/sourceTracker', () => ({
   sourceTracker: {
-    traceSource: jest.fn(),
+    traceSource: vi.fn(),
   },
-  formatSourceLocation: jest.fn((location) => ({
+  formatSourceLocation: vi.fn((location) => ({
     displayPath: location.file_path,
     displayLine: location.line_number ? `line ${location.line_number}` : null,
   })),
 }))
 
-jest.mock('../../utils/externalEditorLauncher', () => ({
-  openFileInEditor: jest.fn(),
+vi.mock('../../utils/externalEditorLauncher', () => ({
+  openFileInEditor: vi.fn(),
 }))
 
 describe('SourceTraceContext', () => {
@@ -38,10 +39,10 @@ describe('SourceTraceContext', () => {
     context: '  "testKey": "testValue",',
   }
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-    const mockTraceSource = require('../../utils/sourceTracker').sourceTracker.traceSource
-    mockTraceSource.mockResolvedValue(mockSourceLocation)
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    const { sourceTracker } = await import('../../utils/sourceTracker')
+    sourceTracker.traceSource.mockResolvedValue(mockSourceLocation)
   })
 
   it('renders children', () => {
@@ -75,6 +76,8 @@ describe('SourceTraceContext', () => {
   })
 
   it('calls traceSource when Trace Source is clicked', async () => {
+    const { sourceTracker } = await import('../../utils/sourceTracker')
+
     render(<SourceTraceContext {...defaultProps} />)
 
     const content = screen.getByText('Test Content')
@@ -83,15 +86,14 @@ describe('SourceTraceContext', () => {
     const traceButton = screen.getByText('Trace Source')
     fireEvent.click(traceButton)
 
-    const mockTraceSource = require('../../utils/sourceTracker').sourceTracker.traceSource
     await waitFor(() => {
-      expect(mockTraceSource).toHaveBeenCalledWith(defaultProps.configKey, [])
+      expect(sourceTracker.traceSource).toHaveBeenCalledWith(defaultProps.configKey, [])
     })
   })
 
   it('shows loading state while tracing', async () => {
-    const mockTraceSource = require('../../utils/sourceTracker').sourceTracker.traceSource
-    mockTraceSource.mockImplementation(() => new Promise(() => {})) // Never resolves
+    const { sourceTracker } = await import('../../utils/sourceTracker')
+    sourceTracker.traceSource.mockImplementation(() => new Promise(() => {})) // Never resolves
 
     render(<SourceTraceContext {...defaultProps} />)
 
@@ -107,8 +109,8 @@ describe('SourceTraceContext', () => {
   })
 
   it('shows error when traceSource fails', async () => {
-    const mockTraceSource = require('../../utils/sourceTracker').sourceTracker.traceSource
-    mockTraceSource.mockRejectedValue(new Error('Test error'))
+    const { sourceTracker } = await import('../../utils/sourceTracker')
+    sourceTracker.traceSource.mockRejectedValue(new Error('Test error'))
 
     render(<SourceTraceContext {...defaultProps} />)
 
@@ -124,8 +126,8 @@ describe('SourceTraceContext', () => {
   })
 
   it('shows error when source not found', async () => {
-    const mockTraceSource = require('../../utils/sourceTracker').sourceTracker.traceSource
-    mockTraceSource.mockResolvedValue(null)
+    const { sourceTracker } = await import('../../utils/sourceTracker')
+    sourceTracker.traceSource.mockResolvedValue(null)
 
     render(<SourceTraceContext {...defaultProps} />)
 
@@ -166,6 +168,8 @@ describe('SourceTraceContext', () => {
   })
 
   it('calls openFileInEditor when Open in Editor is clicked', async () => {
+    const { openFileInEditor } = await import('../../utils/externalEditorLauncher')
+
     render(<SourceTraceContext {...defaultProps} />)
 
     const content = screen.getByText('Test Content')
@@ -182,9 +186,8 @@ describe('SourceTraceContext', () => {
     const openEditorButton = screen.getByText('Open in Editor')
     fireEvent.click(openEditorButton)
 
-    const mockOpenFile = require('../../utils/externalEditorLauncher').openFileInEditor
     await waitFor(() => {
-      expect(mockOpenFile).toHaveBeenCalledWith('/home/user/.claude.json', 42)
+      expect(openFileInEditor).toHaveBeenCalledWith('/home/user/.claude.json', 42)
     })
   })
 
@@ -204,7 +207,7 @@ describe('SourceTraceContext', () => {
   })
 
   it('shows Show details link after successful trace', async () => {
-    render(<SourceLocationTooltip {...defaultProps} />)
+    render(<SourceTraceContext {...defaultProps} />)
 
     const content = screen.getByText('Test Content')
     fireEvent.contextMenu(content)
@@ -220,7 +223,7 @@ describe('SourceTraceContext', () => {
   it('copies file path to clipboard when Copy File Path is clicked', async () => {
     Object.defineProperty(navigator, 'clipboard', {
       value: {
-        writeText: jest.fn(),
+        writeText: vi.fn(),
       },
       writable: true,
     })

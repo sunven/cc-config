@@ -8,7 +8,6 @@
  */
 
 import type { SourceLocation, SourceLocationCache, TraceSourceRequest } from '../types/trace'
-import '../types/weakref'
 
 /// Source location cache with WeakRef for automatic GC
 interface CacheEntry {

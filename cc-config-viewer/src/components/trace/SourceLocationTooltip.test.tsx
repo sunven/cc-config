@@ -5,6 +5,7 @@
  */
 
 import React from 'react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SourceLocationTooltip } from './SourceLocationTooltip'
 
@@ -19,14 +20,14 @@ describe('SourceLocationTooltip', () => {
     location: defaultLocation,
     visible: true,
     position: { x: 100, y: 100 },
-    onClose: jest.fn(),
-    onOpenEditor: jest.fn(),
-    onCopy: jest.fn(),
+    onClose: vi.fn(),
+    onOpenEditor: vi.fn(),
+    onCopy: vi.fn(),
     className: '',
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders when visible is true', () => {

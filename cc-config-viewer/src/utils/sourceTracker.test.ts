@@ -4,11 +4,13 @@
  * Part of Story 3.4 - Source Trace Functionality
  */
 
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SourceTracker, sourceTracker, traceSourceWithDefaults, formatSourceLocation } from './sourceTracker'
+import * as tauriCore from '@tauri-apps/api/core'
 
 // Mock @tauri-apps/api/core
-jest.mock('@tauri-apps/api/core', () => ({
-  invoke: jest.fn(),
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
 }))
 
 describe('SourceTracker', () => {
@@ -16,7 +18,7 @@ describe('SourceTracker', () => {
 
   beforeEach(() => {
     tracker = new SourceTracker()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('constructor', () => {
@@ -60,12 +62,11 @@ describe('SourceTracker', () => {
     })
 
     it('should call invoke with correct parameters', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       const result = await tracker.traceSource('testKey', ['/test/path'])
 
@@ -83,12 +84,11 @@ describe('SourceTracker', () => {
     })
 
     it('should cache successful results', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey', ['/test/path'])
       const cached = tracker.getCachedLocation('testKey')
@@ -100,18 +100,16 @@ describe('SourceTracker', () => {
     })
 
     it('should return null when source not found', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue(null)
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      const mockInvoke = vi.fn().mockResolvedValue(null)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       const result = await tracker.traceSource('testKey', ['/test/path'])
       expect(result).toBeNull()
     })
 
     it('should throw error on invoke failure', async () => {
-      const mockInvoke = jest.fn().mockRejectedValue(new Error('Test error'))
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      const mockInvoke = vi.fn().mockRejectedValue(new Error('Test error'))
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await expect(
         tracker.traceSource('testKey', ['/test/path'])
@@ -126,12 +124,11 @@ describe('SourceTracker', () => {
     })
 
     it('should return cached location for valid entries', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey', ['/test/path'])
       const result = tracker.getCachedLocation('testKey')
@@ -143,12 +140,11 @@ describe('SourceTracker', () => {
     })
 
     it('should return undefined for expired cache', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey', ['/test/path'])
 
@@ -164,12 +160,11 @@ describe('SourceTracker', () => {
 
   describe('clearCache', () => {
     it('should clear all cached entries', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey', ['/test/path'])
       expect(tracker.getCacheStats().size).toBe(1)
@@ -181,12 +176,11 @@ describe('SourceTracker', () => {
 
   describe('getCacheStats', () => {
     it('should return cache statistics', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey1', ['/test/path'])
       await tracker.traceSource('testKey2', ['/test/path'])
@@ -200,12 +194,11 @@ describe('SourceTracker', () => {
 
   describe('invalidate', () => {
     it('should remove specific cache entry', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey', ['/test/path'])
       expect(tracker.hasCached('testKey')).toBe(true)
@@ -217,12 +210,11 @@ describe('SourceTracker', () => {
 
   describe('hasCached', () => {
     it('should return true for cached entries', async () => {
-      const mockInvoke = jest.fn().mockResolvedValue({
+      const mockInvoke = vi.fn().mockResolvedValue({
         file_path: '/test/file.json',
         line_number: 42,
       })
-      const { invoke } = require('@tauri-apps/api/core')
-      invoke.mockImplementation(mockInvoke)
+      vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
       await tracker.traceSource('testKey', ['/test/path'])
       expect(tracker.hasCached('testKey')).toBe(true)
@@ -236,16 +228,17 @@ describe('SourceTracker', () => {
 
 describe('traceSourceWithDefaults', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
+    // Clear the tracker cache
+    sourceTracker.clearCache()
   })
 
   it('should use default paths with project', async () => {
-    const mockInvoke = jest.fn().mockResolvedValue({
+    const mockInvoke = vi.fn().mockResolvedValue({
       file_path: '/test/file.json',
       line_number: 42,
     })
-    const { invoke } = require('@tauri-apps/api/core')
-    invoke.mockImplementation(mockInvoke)
+    vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
     await traceSourceWithDefaults('testKey', '/test/project')
 
@@ -260,12 +253,11 @@ describe('traceSourceWithDefaults', () => {
   })
 
   it('should use default paths without project', async () => {
-    const mockInvoke = jest.fn().mockResolvedValue({
+    const mockInvoke = vi.fn().mockResolvedValue({
       file_path: '/test/file.json',
       line_number: 42,
     })
-    const { invoke } = require('@tauri-apps/api/core')
-    invoke.mockImplementation(mockInvoke)
+    vi.mocked(tauriCore.invoke).mockImplementation(mockInvoke)
 
     await traceSourceWithDefaults('testKey')
 
@@ -275,21 +267,27 @@ describe('traceSourceWithDefaults', () => {
 
 describe('formatSourceLocation', () => {
   it('should format location with line number', () => {
+    const homePath = process.env.USERPROFILE || process.env.HOME || 'C:\\Users\\sunven'
+    const fullPath = `${homePath}\\.claude.json`
+
     const result = formatSourceLocation({
-      file_path: '/home/user/.claude.json',
+      file_path: fullPath,
       line_number: 42,
     })
 
-    expect(result.displayPath).toBe('~/.claude.json')
+    expect(result.displayPath).toBe('~\\.claude.json')
     expect(result.displayLine).toBe('line 42')
   })
 
   it('should format location without line number', () => {
+    const homePath = process.env.USERPROFILE || process.env.HOME || 'C:\\Users\\sunven'
+    const fullPath = `${homePath}\\.claude.json`
+
     const result = formatSourceLocation({
-      file_path: '/home/user/.claude.json',
+      file_path: fullPath,
     })
 
-    expect(result.displayPath).toBe('~/.claude.json')
+    expect(result.displayPath).toBe('~\\.claude.json')
     expect(result.displayLine).toBeNull()
   })
 

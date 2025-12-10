@@ -124,17 +124,22 @@ export function throttle<T extends (...args: any[]) => any>(
 ): T & { cancel: () => void } {
   let lastRan = 0
   let timeoutId: ReturnType<typeof setTimeout> | null = null
+  let lastArgs: Parameters<T> | null = null
 
   const throttledFn = ((...args: Parameters<T>) => {
     const now = Date.now()
+    lastArgs = args // Always update last args
     if (now - lastRan >= limit) {
       fn(...args)
       lastRan = now
     } else if (!timeoutId) {
       timeoutId = setTimeout(() => {
-        fn(...args)
+        if (lastArgs) {
+          fn(...lastArgs)
+        }
         lastRan = Date.now()
         timeoutId = null
+        lastArgs = null
       }, limit - (now - lastRan))
     }
   }) as T & { cancel: () => void }
@@ -144,6 +149,7 @@ export function throttle<T extends (...args: any[]) => any>(
       clearTimeout(timeoutId)
       timeoutId = null
     }
+    lastArgs = null
   }
 
   return throttledFn
