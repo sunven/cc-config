@@ -7,6 +7,7 @@ import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { SkipLink } from '@/components/Accessibility/SkipLink'
+import { LiveRegionProvider } from '@/components/Accessibility/LiveRegion'
 import { LanguageSwitcher } from '@/components/Language/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { ZoomControls } from '@/components/ZoomControls'
@@ -162,13 +163,21 @@ describe('Accessibility Tests', () => {
 
   describe('ThemeToggle Component', () => {
     it('should not have any accessibility violations', async () => {
-      const { container } = render(<ThemeToggle />)
+      const { container } = render(
+        <LiveRegionProvider>
+          <ThemeToggle />
+        </LiveRegionProvider>
+      )
       const results = await axe(container)
       expect(results).toHaveNoViolations()
     })
 
     it('should have aria-pressed attribute', () => {
-      render(<ThemeToggle />)
+      render(
+        <LiveRegionProvider>
+          <ThemeToggle />
+        </LiveRegionProvider>
+      )
 
       const button = screen.getByRole('button')
       expect(button).toHaveAttribute('aria-pressed')
@@ -177,13 +186,21 @@ describe('Accessibility Tests', () => {
 
   describe('ZoomControls Component', () => {
     it('should not have any accessibility violations', async () => {
-      const { container } = render(<ZoomControls />)
+      const { container } = render(
+        <LiveRegionProvider>
+          <ZoomControls />
+        </LiveRegionProvider>
+      )
       const results = await axe(container)
       expect(results).toHaveNoViolations()
     })
 
     it('should have proper ARIA labels', () => {
-      render(<ZoomControls />)
+      render(
+        <LiveRegionProvider>
+          <ZoomControls />
+        </LiveRegionProvider>
+      )
 
       const toolbar = screen.getByRole('toolbar')
       expect(toolbar).toBeInTheDocument()
@@ -200,7 +217,7 @@ describe('Accessibility Tests', () => {
 
   describe('Dialog Component', () => {
     it('should not have any accessibility violations when open', async () => {
-      const { container } = render(
+      render(
         <Dialog>
           <DialogTrigger asChild>
             <Button>Open Dialog</Button>

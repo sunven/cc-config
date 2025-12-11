@@ -12,6 +12,21 @@ global.ResizeObserver = class ResizeObserver {
 // Mock scrollIntoView for cmdk
 Element.prototype.scrollIntoView = vi.fn()
 
+// Mock matchMedia for accessibility tests
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
 // Mock performance.memory for memory profiling tests (can be overridden by individual tests)
 if (!('memory' in performance)) {
   Object.defineProperty(performance, 'memory', {
