@@ -7,6 +7,27 @@ vi.mock('@/components/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
+// Mock LiveRegionProvider
+vi.mock('@/components/Accessibility/LiveRegion', () => ({
+  LiveRegionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useLiveRegion: () => ({ announce: vi.fn() })
+}))
+
+// Mock useAccessibility hook
+vi.mock('@/hooks/useAccessibility', () => ({
+  useAccessibility: () => ({
+    isHighContrast: false,
+    prefersReducedMotion: false,
+    announceLoading: vi.fn(),
+    announceSuccess: vi.fn(),
+    announceError: vi.fn(),
+    announceStateChange: vi.fn(),
+    toggleHighContrast: vi.fn(),
+  }),
+  useFocusVisible: () => false,
+  useReducedMotion: () => false,
+}))
+
 // Mock ScopeIndicator to simplify testing
 vi.mock('@/components/ScopeIndicator', () => ({
   ScopeIndicator: ({ scope, projectName }: { scope: string; projectName?: string }) => (
@@ -68,6 +89,106 @@ vi.mock('@/stores/projectsStore', () => ({
 vi.mock('@/lib/projectDetection', () => ({
   detectCurrentProject: vi.fn(() => Promise.resolve(mockProject)),
 }))
+
+// Mock other hooks
+vi.mock('@/hooks/useOnboarding', () => ({
+  useOnboarding: () => ({
+    hasSeenOnboarding: true,
+    resetOnboarding: vi.fn(),
+  }),
+}))
+
+vi.mock('@/hooks/useErrorHandler', () => ({
+  useErrorHandler: () => ({
+    handleError: vi.fn(),
+    clearError: vi.fn(),
+  }),
+}))
+
+vi.mock('@/hooks/useFileWatcher', () => ({
+  useFileWatcher: vi.fn(),
+}))
+
+vi.mock('@/hooks/useMemoryMonitor', () => ({
+  useMemoryMonitor: vi.fn(),
+}))
+
+vi.mock('@/hooks/useZoom', () => ({
+  useZoom: () => ({
+    zoomLevel: 1,
+    zoomIn: vi.fn(),
+    zoomOut: vi.fn(),
+    resetZoom: vi.fn(),
+  }),
+}))
+
+// Mock performance monitor
+vi.mock('@/lib/performanceMonitor', () => ({
+  measureStartupTime: vi.fn(() => ({ duration: 100, meetsRequirement: true })),
+  measureTabSwitch: vi.fn(() => ({ duration: 50, meetsRequirement: true })),
+  globalPerformanceMonitor: {
+    recordMetric: vi.fn(),
+  },
+}))
+
+vi.mock('@/lib/performanceLogger', () => ({
+  enableAutoPerformanceLogging: vi.fn(() => vi.fn()),
+  logPerformanceSummary: vi.fn(),
+}))
+
+// Mock lazy-loaded components
+vi.mock('@/components/CapabilityPanel', () => ({
+  CapabilityPanel: () => <div data-testid="capability-panel">Capability Panel</div>,
+}))
+
+vi.mock('@/components/ProjectDashboard', () => ({
+  ProjectDashboard: () => <div data-testid="project-dashboard">Project Dashboard</div>,
+}))
+
+vi.mock('@/components/ProjectComparison', () => ({
+  ProjectComparison: () => <div data-testid="project-comparison">Project Comparison</div>,
+}))
+
+vi.mock('@/components/onboarding/OnboardingWizard', () => ({
+  default: () => <div data-testid="onboarding-wizard">Onboarding Wizard</div>,
+}))
+
+// Mock UI components
+vi.mock('@/components/ui/tooltip', () => ({
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+vi.mock('@/components/SemanticHTML', () => ({
+  Header: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <header className={className}>{children}</header>
+  ),
+  Main: ({ children, className, id }: { children: React.ReactNode; className?: string; id?: string }) => (
+    <main className={className} id={id}>{children}</main>
+  ),
+}))
+
+vi.mock('@/components/LoadingStates', () => ({
+  LoadingStates: () => <div data-testid="loading-states">Loading States</div>,
+}))
+
+vi.mock('@/components/ErrorDisplay', () => ({
+  ErrorDisplay: () => <div data-testid="error-display">Error Display</div>,
+  ErrorBadge: () => <div data-testid="error-badge">Error Badge</div>,
+}))
+
+vi.mock('@/components/ThemeToggle', () => ({
+  ThemeToggle: () => <button data-testid="theme-toggle">Theme Toggle</button>,
+}))
+
+vi.mock('@/components/ZoomControls', () => ({
+  ZoomControls: () => <div data-testid="zoom-controls">Zoom Controls</div>,
+}))
+
+vi.mock('@/components/Language/LanguageSwitcher', () => ({
+  LanguageSwitcher: () => <button data-testid="language-switcher">Language Switcher</button>,
+}))
+
+vi.mock('@/lib/i18n', () => ({}))
 
 describe('App', () => {
   it('renders without crashing', () => {
