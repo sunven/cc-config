@@ -1,0 +1,29 @@
+# Global ownership
+* @maintainer
+
+# Frontend code
+/src/ @frontend-team
+/src/**/*.tsx @frontend-team
+/src/**/*.ts @frontend-team
+/src/**/*.jsx @frontend-team
+/src/**/*.js @frontend-team
+
+# Backend/Rust code
+/src-tauri/ @rust-team
+/src-tauri/**/*.rs @rust-team
+
+# Tests
+/src/__tests__/ @qa-team
+/src/tests/ @qa-team
+/e2e/ @qa-team
+
+# Documentation
+/*.md @docs-team
+/docs/ @docs-team
+
+# CI/CD
+/.github/ @devops-team
+/RELEASE_DRAFTER.yml @devops-team
+
+# Security
+SECURITY.md @security-team

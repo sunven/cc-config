@@ -14,6 +14,9 @@ import { Button } from '@/components/ui/button'
 import { SkipLink } from '@/components/Accessibility/SkipLink'
 import { LiveRegionProvider } from '@/components/Accessibility/LiveRegion'
 import { LanguageSwitcher } from '@/components/Language/LanguageSwitcher'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { ZoomControls } from '@/components/ZoomControls'
+import { Header as SemanticHeader, Main as SemanticMain } from '@/components/SemanticHTML'
 import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
@@ -21,6 +24,8 @@ import { useOnboarding } from '@/hooks/useOnboarding'
 import { useErrorHandler } from '@/hooks/useErrorHandler'
 import { useFileWatcher } from '@/hooks/useFileWatcher'
 import { useMemoryMonitor } from '@/hooks/useMemoryMonitor'
+import { useAccessibility, useFocusVisible } from '@/hooks/useAccessibility'
+import { useZoom } from '@/hooks/useZoom'
 import { detectCurrentProject } from '@/lib/projectDetection'
 import {
   measureStartupTime,
@@ -46,6 +51,13 @@ function App() {
     isLoading: state.isLoading,
     loadingMessage: state.loadingMessage,
   }))
+
+  // Accessibility hooks
+  const { isHighContrast, toggleHighContrast } = useAccessibility()
+  const isFocusVisible = useFocusVisible()
+
+  // Zoom controls
+  const { zoomLevel } = useZoom()
 
   // Onboarding state
   const { hasSeenOnboarding, resetOnboarding } = useOnboarding()
@@ -264,12 +276,14 @@ function App() {
       <LiveRegionProvider>
         <TooltipProvider>
           <SkipLink targetId="main-content" />
-          <div className="min-h-screen bg-background text-foreground">
+          <div className={`min-h-screen bg-background text-foreground ${isHighContrast ? 'high-contrast' : ''}`}>
             {/* Header */}
-            <header className="border-b border-border px-6 py-4 flex items-center justify-between" role="banner">
+            <SemanticHeader className="border-b border-border px-6 py-4 flex items-center justify-between">
               <h1 className="text-xl font-semibold">cc-config</h1>
               <div className="flex items-center gap-2">
                 <LanguageSwitcher />
+                <ThemeToggle />
+                <ZoomControls />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -282,7 +296,7 @@ function App() {
                 </Button>
                 <ErrorBadge />
               </div>
-            </header>
+            </SemanticHeader>
 
           {/* Global Loading Overlay */}
           <LoadingStates
@@ -297,7 +311,7 @@ function App() {
           </Suspense>
 
           {/* Main Content with Tab Navigation */}
-          <main id="main-content" className="p-6 space-y-4" role="main">
+          <SemanticMain id="main-content" className="p-6 space-y-4">
             {/* Error Display Area */}
             <ErrorDisplay maxErrors={3} />
 
@@ -394,7 +408,7 @@ function App() {
                 </Suspense>
               </div>
             )}
-          </main>
+          </SemanticMain>
         </div>
         </TooltipProvider>
       </LiveRegionProvider>

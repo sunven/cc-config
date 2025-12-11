@@ -363,4 +363,112 @@ describe('Accessibility Tests', () => {
       expect(triggerButton).toHaveFocus()
     })
   })
+
+  describe('Theme Toggle', () => {
+    it('should toggle high contrast mode', async () => {
+      render(
+        <LiveRegionProvider>
+          <ThemeToggle />
+        </LiveRegionProvider>
+      )
+
+      const toggleButton = screen.getByRole('button', { name: /theme/i })
+      expect(toggleButton).toBeInTheDocument()
+
+      await userEvent.click(toggleButton)
+
+      // Verify the button state changes
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('should have proper ARIA attributes', () => {
+      render(
+        <LiveRegionProvider>
+          <ThemeToggle />
+        </LiveRegionProvider>
+      )
+
+      const toggleButton = screen.getByRole('button')
+      expect(toggleButton).toHaveAttribute('aria-label')
+      expect(toggleButton).toHaveAttribute('aria-pressed')
+    })
+  })
+
+  describe('Zoom Controls', () => {
+    it('should have zoom controls toolbar', () => {
+      render(
+        <LiveRegionProvider>
+          <ZoomControls />
+        </LiveRegionProvider>
+      )
+
+      const toolbar = screen.getByRole('toolbar')
+      expect(toolbar).toBeInTheDocument()
+      expect(toolbar).toHaveAttribute('aria-label')
+    })
+
+    it('should display current zoom level', () => {
+      render(
+        <LiveRegionProvider>
+          <ZoomControls />
+        </LiveRegionProvider>
+      )
+
+      // Should display current zoom level (default 100%)
+      expect(screen.getByText(/\d+%/)).toBeInTheDocument()
+    })
+
+    it('should have zoom in and out buttons', () => {
+      render(
+        <LiveRegionProvider>
+          <ZoomControls />
+        </LiveRegionProvider>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      expect(buttons.length).toBeGreaterThanOrEqual(3) // zoom out, zoom in, reset
+    })
+  })
+
+  describe('Language Switcher', () => {
+    it('should have proper ARIA attributes', () => {
+      render(
+        <LiveRegionProvider>
+          <LanguageSwitcher />
+        </LiveRegionProvider>
+      )
+
+      const triggerButton = screen.getByRole('button', { name: /language/i })
+      expect(triggerButton).toBeInTheDocument()
+      expect(triggerButton).toHaveAttribute('aria-label')
+    })
+
+    it('should change language when selected', async () => {
+      render(
+        <LiveRegionProvider>
+          <LanguageSwitcher />
+        </LiveRegionProvider>
+      )
+
+      const triggerButton = screen.getByRole('button', { name: /language/i })
+      await userEvent.click(triggerButton)
+
+      const chineseOption = screen.getByText('中文')
+      expect(chineseOption).toBeInTheDocument()
+    })
+  })
+
+  describe('Skip Link', () => {
+    it('should be keyboard accessible', () => {
+      render(
+        <LiveRegionProvider>
+          <SkipLink targetId="main-content" />
+        </LiveRegionProvider>
+      )
+
+      const skipLink = screen.getByText(/skip to/i)
+      expect(skipLink).toBeInTheDocument()
+      expect(skipLink).toHaveAttribute('href', '#main-content')
+    })
+  })
 })

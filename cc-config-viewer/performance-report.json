@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-12-11T05:16:46.458Z",
+  "thresholds": {
+    "STARTUP_TIME": 3000,
+    "TAB_SWITCH": 100,
+    "FILE_CHANGE_DETECTION": 500,
+    "MEMORY_USAGE": 200,
+    "BUILD_TIME": 60000,
+    "TYPE_CHECK": 30000,
+    "FIRST_CONTENTFUL_PAINT": 2000,
+    "TIME_TO_INTERACTIVE": 3500
+  },
+  "results": {
+    "typeCheck": {
+      "passed": false
+    },
+    "build": {
+      "passed": false
+    },
+    "bundleSize": {
+      "passed": true
+    },
+    "memory": {
+      "passed": true
+    },
+    "startup": {
+      "passed": true
+    },
+    "tests": {
+      "passed": false
+    }
+  },
+  "summary": {
+    "passed": 3,
+    "failed": 3,
+    "total": 6
+  }
+}

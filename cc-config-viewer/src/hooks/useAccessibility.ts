@@ -51,8 +51,8 @@ export const useAccessibility = () => {
   const toggleHighContrast = useCallback(() => {
     const newValue = !isHighContrast
     setIsHighContrast(newValue)
-    // In a real implementation, you would toggle a class on the document body
-    // document.body.classList.toggle('high-contrast', newValue)
+    // Toggle high contrast class on document body
+    document.body.classList.toggle('high-contrast', newValue)
     announce(newValue ? 'High contrast mode enabled' : 'High contrast mode disabled', 'polite')
   }, [isHighContrast, announce])
 
