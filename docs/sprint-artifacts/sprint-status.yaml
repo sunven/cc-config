@@ -72,7 +72,7 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: MCP & Sub Agents Management
-  epic-4: in-progress
+  epic-4: done
   4-1-mcp-servers-display: done
   4-2-sub-agents-display: done
   4-3-unified-capability-panel: done
@@ -95,6 +95,6 @@ development_status:
   6-2-loading-states-and-progress-indicators: done
   6-3-first-time-user-experience: done
   6-4-performance-optimization: done
-  6-5-accessibility-and-internationalization: review
-  6-6-final-polish-and-testing: review
+  6-5-accessibility-and-internationalization: done
+  6-6-final-polish-and-testing: code-review-complete
   epic-6-retrospective: optional
