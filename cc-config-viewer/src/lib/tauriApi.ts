@@ -214,3 +214,12 @@ export async function validateExportData(data: any): Promise<{ isValid: boolean;
     throw convertRustError(error)
   }
 }
+
+// System path commands
+export async function getHomeDir(): Promise<string> {
+  try {
+    return await invoke<string>('get_home_dir')
+  } catch (error) {
+    throw convertRustError(error)
+  }
+}

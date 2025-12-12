@@ -1,12 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useAccessibility } from '@/hooks/useAccessibility'
 import { useTranslation } from 'react-i18next'
 import { Palette } from 'lucide-react'
 
 export const ThemeToggle: React.FC = () => {
   const { t } = useTranslation()
-  const { isHighContrast, toggleHighContrast } = useAccessibility()
+  const [isHighContrast, setIsHighContrast] = useState(false)
+
+  const toggleHighContrast = () => {
+    setIsHighContrast(!isHighContrast)
+    document.body.classList.toggle('high-contrast', !isHighContrast)
+  }
 
   return (
     <Button

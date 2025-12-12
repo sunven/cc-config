@@ -6,7 +6,7 @@
  * Part of Story 3.4 - Source Trace Functionality
  */
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Copy, ExternalLink, FileText } from 'lucide-react'
 import type { SourceLocation } from '../../types/trace'
 import { formatSourceLocation } from '../../utils/sourceTracker'
@@ -31,9 +31,21 @@ export const SourceLocationTooltip: React.FC<SourceLocationTooltipProps> = ({
   onCopy,
   className = '',
 }) => {
-  if (!visible) return null
+  const [displayPath, setDisplayPath] = useState<string>(location.file_path)
+  const [displayLine, setDisplayLine] = useState<string | null>(null)
 
-  const { displayPath, displayLine } = formatSourceLocation(location)
+  useEffect(() => {
+    let mounted = true
+    formatSourceLocation(location).then(({ displayPath, displayLine }) => {
+      if (mounted) {
+        setDisplayPath(displayPath)
+        setDisplayLine(displayLine)
+      }
+    })
+    return () => { mounted = false }
+  }, [location])
+
+  if (!visible) return null
 
   const handleOpenEditor = () => {
     if (onOpenEditor) {

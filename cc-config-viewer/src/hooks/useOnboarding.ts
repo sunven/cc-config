@@ -14,16 +14,14 @@ import type { OnboardingStep, UseOnboardingReturn, OnboardingStatus } from '@/ty
  * @returns Onboarding state and actions
  */
 export function useOnboarding(): UseOnboardingReturn {
-  // Use uiStore for global state
-  const {
-    hasSeenOnboarding,
-    isOnboardingActive,
-    currentOnboardingStep,
-    startOnboarding: startOnboardingStore,
-    completeOnboarding: completeOnboardingStore,
-    setOnboardingActive,
-    setOnboardingStep,
-  } = useUiStore()
+  // Use selectors for uiStore to avoid re-renders on unrelated state changes
+  const hasSeenOnboarding = useUiStore((state) => state.hasSeenOnboarding)
+  const isOnboardingActive = useUiStore((state) => state.isOnboardingActive)
+  const currentOnboardingStep = useUiStore((state) => state.currentOnboardingStep)
+  const startOnboardingStore = useUiStore((state) => state.startOnboarding)
+  const completeOnboardingStore = useUiStore((state) => state.completeOnboarding)
+  const setOnboardingActive = useUiStore((state) => state.setOnboardingActive)
+  const setOnboardingStep = useUiStore((state) => state.setOnboardingStep)
 
   // Local state for UI-specific onboarding state
   const [canSkip, setCanSkipState] = useState(true)

@@ -19,7 +19,7 @@ const THRESHOLDS = {
  * Logs performance summary to console in development mode
  */
 export function logPerformanceSummary(): void {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!import.meta.env.DEV) {
     return
   }
 
@@ -90,7 +90,7 @@ export function logPerformanceSummary(): void {
  * Logs slow operations to console
  */
 export function logSlowOperations(threshold: number = 100): void {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!import.meta.env.DEV) {
     return
   }
 
@@ -117,7 +117,7 @@ export function logSlowOperations(threshold: number = 100): void {
  * Logs memory usage details
  */
 export function logMemoryUsage(): void {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!import.meta.env.DEV) {
     return
   }
 
@@ -188,7 +188,7 @@ export function exportPerformanceReport(): string {
 export function clearPerformanceMetrics(): void {
   globalPerformanceMonitor.clearMetrics()
 
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.debug('[Performance] Metrics cleared')
   }
 }
@@ -198,7 +198,7 @@ export function clearPerformanceMetrics(): void {
  * Call this once in development mode
  */
 export function enableAutoPerformanceLogging(intervalMs: number = 60000): () => void {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!import.meta.env.DEV) {
     return () => {}
   }
 
@@ -225,7 +225,7 @@ export function logMetric(name: string, duration: number, metadata?: Record<stri
 
   globalPerformanceMonitor.recordMetric(metric)
 
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const status = metric.meetsRequirement ? '✓' : '⚠'
     console.debug(`${status} [Performance] ${name}: ${duration.toFixed(2)}ms`, metadata || '')
   }

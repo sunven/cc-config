@@ -10,7 +10,7 @@ import React, { useState } from 'react'
 import { Search, Copy, ExternalLink } from 'lucide-react'
 import { Button } from '../ui/button'
 import type { SourceLocation } from '../../types/trace'
-import { sourceTracker, formatSourceLocation } from '../../utils/sourceTracker'
+import { sourceTracker } from '../../utils/sourceTracker'
 import { openFileInEditor } from '../../utils/externalEditorLauncher'
 import { SourceLocationTooltip } from './SourceLocationTooltip'
 

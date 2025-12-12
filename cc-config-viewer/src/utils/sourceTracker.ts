@@ -8,6 +8,21 @@
  */
 
 import type { SourceLocation, SourceLocationCache, TraceSourceRequest } from '../types/trace'
+import { getHomeDir } from '../lib/tauriApi'
+
+// Cached home directory (lazily initialized)
+let cachedHomeDir: string | null = null
+
+async function getHomeDirCached(): Promise<string> {
+  if (cachedHomeDir === null) {
+    try {
+      cachedHomeDir = await getHomeDir()
+    } catch {
+      cachedHomeDir = ''
+    }
+  }
+  return cachedHomeDir
+}
 
 /// Source location cache with WeakRef for automatic GC
 interface CacheEntry {
@@ -243,7 +258,8 @@ export async function traceSourceWithDefaults(
   const searchPaths: string[] = []
 
   // Add user-level config path
-  searchPaths.push(`${process.env.HOME || process.env.USERPROFILE || ''}/.claude.json`)
+  const homeDir = await getHomeDirCached()
+  searchPaths.push(`${homeDir}/.claude.json`)
 
   // Add project-level config path if provided
   if (projectPath) {
@@ -259,15 +275,13 @@ export async function traceSourceWithDefaults(
 }
 
 /// Helper function to get source location context for display
-export function formatSourceLocation(location: SourceLocation): {
+export async function formatSourceLocation(location: SourceLocation): Promise<{
   displayPath: string
   displayLine: string | null
-} {
+}> {
   // Normalize the path for display
-  const displayPath = location.file_path.replace(
-    process.env.HOME || process.env.USERPROFILE || '',
-    '~'
-  )
+  const homeDir = await getHomeDirCached()
+  const displayPath = location.file_path.replace(homeDir, '~')
 
   const displayLine = location.line_number ? `line ${location.line_number}` : null
 

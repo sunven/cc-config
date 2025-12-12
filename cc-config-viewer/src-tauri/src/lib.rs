@@ -6,7 +6,7 @@ mod config;
 mod types;
 mod utils;
 
-use commands::config::{read_config, parse_config, watch_config};
+use commands::config::{read_config, parse_config, watch_config, get_current_dir, get_home_dir};
 use commands::source::{get_source_location, open_in_editor, copy_to_clipboard};
 use commands::project_commands::{
     list_projects, scan_projects, watch_projects, health_check_project, calculate_health_metrics,
@@ -55,6 +55,8 @@ pub fn run() {
             read_config,
             parse_config,
             watch_config,
+            get_current_dir,
+            get_home_dir,
             get_source_location,
             open_in_editor,
             copy_to_clipboard,

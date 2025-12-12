@@ -26,8 +26,11 @@ const DEBOUNCE_MS = 300
  * Usage: Call this hook once at the app root level (e.g., in App.tsx)
  */
 export function useFileWatcher() {
-  const { invalidateCache, switchToScope, removeConfig } = useConfigStore()
-  const { invalidateProjectCache } = useProjectsStore()
+  // Use selectors to get only action functions (stable references)
+  const invalidateCache = useConfigStore((state) => state.invalidateCache)
+  const switchToScope = useConfigStore((state) => state.switchToScope)
+  const removeConfig = useConfigStore((state) => state.removeConfig)
+  const invalidateProjectCache = useProjectsStore((state) => state.invalidateProjectCache)
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingChangesRef = useRef<ConfigChangedEvent[]>([])
 

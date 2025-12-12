@@ -2,6 +2,8 @@
  * Type definitions for onboarding system
  */
 
+import type React from 'react'
+
 /**
  * Onboarding step types
  */
@@ -63,6 +65,8 @@ export interface FeatureHighlight {
   step: OnboardingStep
   component?: string
   selector?: string
+  icon?: React.ComponentType<{ className?: string }>
+  content?: React.ReactNode
 }
 
 /**

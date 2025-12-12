@@ -282,7 +282,7 @@ export const globalPerformanceMonitor = new PerformanceMonitor()
  * Development mode performance logger
  */
 export function logPerformanceMetric(metric: PerformanceMetric): void {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     const status = metric.meetsRequirement ? '✓' : '⚠'
     const threshold =
       metric.name === 'startup'

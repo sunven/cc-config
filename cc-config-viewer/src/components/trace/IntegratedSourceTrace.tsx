@@ -9,7 +9,7 @@
  * - AC8: Support for inheritance path visualization (Story 3.3)
  */
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, GitBranch } from 'lucide-react'
 import { SourceIndicator } from '../SourceIndicator'
 import type { ConfigEntry } from '../../types/config'
@@ -39,9 +39,24 @@ export const IntegratedSourceTrace: React.FC<IntegratedSourceTraceProps> = ({
   onTraceSource,
   className = '',
 }) => {
-  const { displayPath, displayLine } = sourceLocation
-    ? formatSourceLocation(sourceLocation)
-    : { displayPath: null, displayLine: null }
+  const [displayPath, setDisplayPath] = useState<string | null>(null)
+  const [displayLine, setDisplayLine] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    if (sourceLocation) {
+      formatSourceLocation(sourceLocation).then(({ displayPath, displayLine }) => {
+        if (mounted) {
+          setDisplayPath(displayPath)
+          setDisplayLine(displayLine)
+        }
+      })
+    } else {
+      setDisplayPath(null)
+      setDisplayLine(null)
+    }
+    return () => { mounted = false }
+  }, [sourceLocation])
 
   return (
     <div

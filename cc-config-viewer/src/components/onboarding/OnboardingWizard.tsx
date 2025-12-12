@@ -38,13 +38,10 @@ const STEP_ICONS = {
 export function OnboardingWizard() {
   const { isActive, currentStep } = useOnboarding()
 
-  // Don't render if onboarding is not active
-  if (!isActive) {
-    return null
-  }
-
-  // Handle keyboard navigation
+  // Handle keyboard navigation - must be before any conditional returns
   useEffect(() => {
+    if (!isActive) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Allow Escape to skip
       if (e.key === 'Escape') {
@@ -54,7 +51,12 @@ export function OnboardingWizard() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [isActive])
+
+  // Don't render if onboarding is not active
+  if (!isActive) {
+    return null
+  }
 
   const totalSteps = 6
 

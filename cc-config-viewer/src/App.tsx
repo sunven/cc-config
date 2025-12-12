@@ -12,7 +12,6 @@ import { AgentList } from '@/components/AgentList'
 import { LoadingStates } from '@/components/LoadingStates'
 import { Button } from '@/components/ui/button'
 import { SkipLink } from '@/components/Accessibility/SkipLink'
-import { LiveRegionProvider } from '@/components/Accessibility/LiveRegion'
 import { LanguageSwitcher } from '@/components/Language/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { ZoomControls } from '@/components/ZoomControls'
@@ -21,15 +20,11 @@ import { useUiStore } from '@/stores/uiStore'
 import { useConfigStore } from '@/stores/configStore'
 import { useProjectsStore } from '@/stores/projectsStore'
 import { useOnboarding } from '@/hooks/useOnboarding'
-import { useErrorHandler } from '@/hooks/useErrorHandler'
 import { useFileWatcher } from '@/hooks/useFileWatcher'
 import { useMemoryMonitor } from '@/hooks/useMemoryMonitor'
-import { useAccessibility, useFocusVisible } from '@/hooks/useAccessibility'
-import { useZoom } from '@/hooks/useZoom'
 import { detectCurrentProject } from '@/lib/projectDetection'
 import {
   measureStartupTime,
-  measureTabSwitch,
   globalPerformanceMonitor,
 } from '@/lib/performanceMonitor'
 import { enableAutoPerformanceLogging, logPerformanceSummary } from '@/lib/performanceLogger'
@@ -41,32 +36,22 @@ import '@/lib/i18n'
 const CapabilityPanel = lazy(() => import('@/components/CapabilityPanel').then(m => ({ default: m.CapabilityPanel })))
 const ProjectDashboard = lazy(() => import('@/components/ProjectDashboard').then(m => ({ default: m.ProjectDashboard })))
 const ProjectComparison = lazy(() => import('@/components/ProjectComparison').then(m => ({ default: m.ProjectComparison })))
-const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'))
+const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard').then(m => ({ default: m.OnboardingWizard })))
 
-function App() {
+// Inner component that uses accessibility hooks
+function AppContent() {
   // Use selectors for fine-grained subscriptions (Task 3 optimization)
   const currentScope = useUiStore((state) => state.currentScope)
   const setCurrentScope = useUiStore((state) => state.setCurrentScope)
-  const { isLoading, loadingMessage } = useUiStore((state) => ({
-    isLoading: state.isLoading,
-    loadingMessage: state.loadingMessage,
-  }))
-
-  // Accessibility hooks
-  const { isHighContrast, toggleHighContrast } = useAccessibility()
-  const isFocusVisible = useFocusVisible()
-
-  // Zoom controls
-  const { zoomLevel } = useZoom()
+  // Split into separate selectors to avoid creating new object on each render
+  const isLoading = useUiStore((state) => state.isLoading)
+  const loadingMessage = useUiStore((state) => state.loadingMessage)
 
   // Onboarding state
   const { hasSeenOnboarding, resetOnboarding } = useOnboarding()
 
   // Content tab state for capability views
   const [currentContentTab, setCurrentContentTab] = useState<'config' | 'mcp' | 'agents' | 'capabilities'>('config')
-
-  // View state for dashboard and comparison
-  const [currentView, setCurrentView] = useState<'dashboard' | 'comparison'>('dashboard')
 
   // Use selectors for configStore
   const configs = useConfigStore((state) => state.configs)
@@ -87,7 +72,7 @@ function App() {
 
   // Enable auto performance logging in development mode
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       // Log slow operations every 60 seconds
       const cleanup = enableAutoPerformanceLogging(60000)
 
@@ -154,7 +139,7 @@ function App() {
       globalPerformanceMonitor.recordMetric(startupMeasurement)
 
       // Log in development mode
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         const status = startupMeasurement.meetsRequirement ? '✓' : '⚠'
         console.debug(
           `${status} [Performance] App startup: ${startupMeasurement.duration.toFixed(2)}ms (threshold: 3000ms)`
@@ -196,7 +181,7 @@ function App() {
     globalPerformanceMonitor.recordMetric(tabSwitchMeasurement)
 
     // Log in development mode for slow tab switches
-    if (process.env.NODE_ENV === 'development' && duration > 100) {
+    if (import.meta.env.DEV && duration > 100) {
       console.warn(
         `⚠ [Performance] Slow tab switch: ${duration.toFixed(2)}ms (threshold: 100ms) from ${oldScope} to ${newScope}`
       )
@@ -233,21 +218,12 @@ function App() {
     globalPerformanceMonitor.recordMetric(projectSwitchMeasurement)
 
     // Log in development mode for slow switches
-    if (process.env.NODE === 'development' && duration > 100) {
+    if (import.meta.env.DEV && duration > 100) {
       console.warn(
         `⚠ [Performance] Slow project switch: ${duration.toFixed(2)}ms (threshold: 100ms)`
       )
     }
   }, [setCurrentScope, switchToScope, currentScope])
-
-  // Handle view navigation
-  const navigateToDashboard = useCallback(() => {
-    setCurrentView('dashboard')
-  }, [])
-
-  const navigateToComparison = useCallback(() => {
-    setCurrentView('comparison')
-  }, [])
 
   // Handle replay tour
   const handleReplayTour = useCallback(() => {
@@ -261,7 +237,7 @@ function App() {
 
   // Memoize project tab visibility condition
   const showProjectTab = useMemo(() =>
-    (activeProject || process.env.NODE_ENV === 'test'),
+    (activeProject || import.meta.env.MODE === 'test'),
     [activeProject]
   )
 
@@ -272,146 +248,162 @@ function App() {
   const tabGridCols = showProjectTab ? 'grid-cols-2' : 'grid-cols-1'
 
   return (
-    <ErrorBoundary>
-      <LiveRegionProvider>
-        <TooltipProvider>
-          <SkipLink targetId="main-content" />
-          <div className={`min-h-screen bg-background text-foreground ${isHighContrast ? 'high-contrast' : ''}`}>
-            {/* Header */}
-            <SemanticHeader className="border-b border-border px-6 py-4 flex items-center justify-between">
-              <h1 className="text-xl font-semibold">cc-config</h1>
-              <div className="flex items-center gap-2">
-                <LanguageSwitcher />
-                <ThemeToggle />
-                <ZoomControls />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReplayTour}
-                  className="flex items-center gap-2"
-                  aria-label="帮助"
-                >
-                  <HelpCircle className="w-4 h-4" aria-hidden="true" />
-                  <span className="sr-only">帮助</span>
-                </Button>
-                <ErrorBadge />
+    <TooltipProvider>
+      <SkipLink targetId="main-content" />
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Header */}
+        <SemanticHeader className="border-b border-border px-6 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-semibold">cc-config</h1>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+            <ZoomControls />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReplayTour}
+              className="flex items-center gap-2"
+              aria-label="帮助"
+            >
+              <HelpCircle className="w-4 h-4" aria-hidden="true" />
+              <span className="sr-only">帮助</span>
+            </Button>
+            <ErrorBadge />
+          </div>
+        </SemanticHeader>
+
+        {/* Global Loading Overlay */}
+        <LoadingStates
+          isLoading={isLoading}
+          message={loadingMessage}
+          indicator="overlay"
+        />
+
+        {/* Onboarding Wizard */}
+        <Suspense fallback={<LoadingStates isLoading={true} message="Loading onboarding..." />}>
+          <OnboardingWizard />
+        </Suspense>
+
+        {/* Main Content with Tab Navigation */}
+        <SemanticMain id="main-content" className="p-6 space-y-4">
+          {/* Error Display Area */}
+          <ErrorDisplay maxErrors={3} />
+
+          <Tabs value={currentScope} onValueChange={handleTabChange} className="w-full">
+            <TabsList className={`grid w-full ${tabGridCols}`}>
+              <TabsTrigger value="user">用户级</TabsTrigger>
+              {showProjectTab && (
+                <TabsTrigger value="project">
+                  {activeProject?.name || 'test-project'}
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <TabsContent value="user" className="mt-4 tab-content-transition">
+              <div className="mb-4">
+                <ScopeIndicator scope="user" />
               </div>
-            </SemanticHeader>
-
-          {/* Global Loading Overlay */}
-          <LoadingStates
-            isLoading={isLoading}
-            message={loadingMessage}
-            indicator="overlay"
-          />
-
-          {/* Onboarding Wizard */}
-          <Suspense fallback={<LoadingStates variant="fullscreen" message="Loading onboarding..." />}>
-            <OnboardingWizard />
-          </Suspense>
-
-          {/* Main Content with Tab Navigation */}
-          <SemanticMain id="main-content" className="p-6 space-y-4">
-            {/* Error Display Area */}
-            <ErrorDisplay maxErrors={3} />
-
-            <Tabs value={currentScope} onValueChange={handleTabChange} className="w-full">
-              <TabsList className={`grid w-full ${tabGridCols}`}>
-                <TabsTrigger value="user">用户级</TabsTrigger>
-                {showProjectTab && (
-                  <TabsTrigger value="project">
-                    {activeProject?.name || 'test-project'}
-                  </TabsTrigger>
-                )}
-              </TabsList>
-              <TabsContent value="user" className="mt-4 tab-content-transition">
-                <div className="mb-4">
-                  <ScopeIndicator scope="user" />
+              <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="config">Config</TabsTrigger>
+                  <TabsTrigger value="mcp">MCP</TabsTrigger>
+                  <TabsTrigger value="agents">Agents</TabsTrigger>
+                  <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
+                  <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                </TabsList>
+                <TabsContent value="config" className="mt-4">
+                  <ConfigList
+                    configs={configs}
+                    title="User-Level Configuration"
+                    isLoading={isInitialLoading}
+                    error={error}
+                  />
+                </TabsContent>
+                <TabsContent value="mcp" className="mt-4">
+                  <McpList scope="user" />
+                </TabsContent>
+                <TabsContent value="agents" className="mt-4">
+                  <AgentList scope="user" />
+                </TabsContent>
+                <TabsContent value="capabilities" className="mt-4">
+                  <Suspense fallback={<LoadingStates isLoading={true} message="Loading capabilities..." />}>
+                    <CapabilityPanel scope="user" />
+                  </Suspense>
+                </TabsContent>
+                <TabsContent value="dashboard" className="mt-4">
+                  <Suspense fallback={<LoadingStates isLoading={true} message="Loading dashboard..." />}>
+                    <ProjectDashboard onViewCapabilities={switchToCapabilitiesTab} />
+                  </Suspense>
+                </TabsContent>
+              </Tabs>
+            </TabsContent>
+            {showProjectTab && (
+              <TabsContent value="project" className="mt-4 tab-content-transition">
+                <div className="mb-4 flex items-center gap-4">
+                  <ScopeIndicator scope="project" projectName={activeProject?.name} />
+                  <ProjectSelector onProjectSelect={handleProjectSelect} />
                 </div>
+                <ProjectTab scope="project" project={activeProject} />
                 <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
                   <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="config">Config</TabsTrigger>
                     <TabsTrigger value="mcp">MCP</TabsTrigger>
                     <TabsTrigger value="agents">Agents</TabsTrigger>
                     <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
-                    <TabsTrigger value="dashboard" onClick={() => setCurrentView('dashboard')}>Dashboard</TabsTrigger>
+                    <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                   </TabsList>
                   <TabsContent value="config" className="mt-4">
                     <ConfigList
                       configs={configs}
-                      title="User-Level Configuration"
+                      title="Project-Level Configuration"
                       isLoading={isInitialLoading}
                       error={error}
                     />
                   </TabsContent>
+                  <TabsContent value="mcp" className="mt-4">
+                    <McpList scope="project" />
+                  </TabsContent>
+                  <TabsContent value="agents" className="mt-4">
+                    <AgentList scope="project" />
+                  </TabsContent>
                   <TabsContent value="capabilities" className="mt-4">
-                    <Suspense fallback={<LoadingStates variant="component" message="Loading capabilities..." />}>
-                      <CapabilityPanel scope="user" />
+                    <Suspense fallback={<LoadingStates isLoading={true} message="Loading capabilities..." />}>
+                      <CapabilityPanel scope="project" projectName={activeProject?.name} />
                     </Suspense>
                   </TabsContent>
                   <TabsContent value="dashboard" className="mt-4">
-                    <Suspense fallback={<LoadingStates variant="component" message="Loading dashboard..." />}>
+                    <Suspense fallback={<LoadingStates isLoading={true} message="Loading dashboard..." />}>
                       <ProjectDashboard onViewCapabilities={switchToCapabilitiesTab} />
                     </Suspense>
                   </TabsContent>
                 </Tabs>
               </TabsContent>
-              {showProjectTab && (
-                <TabsContent value="project" className="mt-4 tab-content-transition">
-                  <div className="mb-4 flex items-center gap-4">
-                    <ScopeIndicator scope="project" projectName={activeProject?.name} />
-                    <ProjectSelector onProjectSelect={handleProjectSelect} />
-                  </div>
-                  <ProjectTab scope="project" project={activeProject} />
-                  <Tabs value={currentContentTab} onValueChange={(value) => setCurrentContentTab(value as any)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5">
-                      <TabsTrigger value="config">Config</TabsTrigger>
-                      <TabsTrigger value="mcp">MCP</TabsTrigger>
-                      <TabsTrigger value="agents">Agents</TabsTrigger>
-                      <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
-                      <TabsTrigger value="dashboard" onClick={() => setCurrentView('dashboard')}>Dashboard</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="config" className="mt-4">
-                      <ConfigList
-                        configs={configs}
-                        title="Project-Level Configuration"
-                        isLoading={isInitialLoading}
-                        error={error}
-                      />
-                    </TabsContent>
-                    <TabsContent value="mcp" className="mt-4">
-                      <McpList scope="project" />
-                    </TabsContent>
-                    <TabsContent value="agents" className="mt-4">
-                      <AgentList scope="project" />
-                    </TabsContent>
-                    <TabsContent value="capabilities" className="mt-4">
-                      <Suspense fallback={<LoadingStates variant="component" message="Loading capabilities..." />}>
-                        <CapabilityPanel scope="project" projectName={activeProject?.name} />
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="dashboard" className="mt-4">
-                      <Suspense fallback={<LoadingStates variant="component" message="Loading dashboard..." />}>
-                        <ProjectDashboard onViewCapabilities={switchToCapabilitiesTab} />
-                      </Suspense>
-                    </TabsContent>
-                  </Tabs>
-                </TabsContent>
-              )}
-            </Tabs>
-
-            {/* Comparison View - shown when comparison is active */}
-            {isComparisonActive && (
-              <div className="mt-4">
-                <Suspense fallback={<LoadingStates variant="component" message="Loading comparison..." />}>
-                  <ProjectComparison />
-                </Suspense>
-              </div>
             )}
-          </SemanticMain>
-        </div>
-        </TooltipProvider>
-      </LiveRegionProvider>
+          </Tabs>
+
+          {/* Comparison View - shown when comparison is active */}
+          {isComparisonActive && (
+            <div className="mt-4">
+              <Suspense fallback={<LoadingStates isLoading={true} message="Loading comparison..." />}>
+                <ProjectComparison />
+              </Suspense>
+            </div>
+          )}
+        </SemanticMain>
+      </div>
+    </TooltipProvider>
+  )
+}
+
+// Main App component - wraps content with providers
+function App() {
+  return (
+    <ErrorBoundary onError={(error, errorInfo) => {
+      console.error('=== App Error Details ===')
+      console.error('Error:', error.message)
+      console.error('Stack:', error.stack)
+      console.error('Component Stack:', errorInfo.componentStack)
+    }}>
+      <AppContent />
     </ErrorBoundary>
   )
 }

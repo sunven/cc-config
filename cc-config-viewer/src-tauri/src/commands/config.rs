@@ -25,3 +25,17 @@ pub fn watch_config(path: String) -> Result<(), String> {
     println!("Watching config file: {}", path);
     Ok(())
 }
+
+#[tauri::command]
+pub fn get_current_dir() -> Result<String, AppError> {
+    std::env::current_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .map_err(|e| AppError::Filesystem(format!("Failed to get current directory: {}", e)))
+}
+
+#[tauri::command]
+pub fn get_home_dir() -> Result<String, AppError> {
+    dirs::home_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .ok_or_else(|| AppError::Filesystem("Failed to get home directory".to_string()))
+}

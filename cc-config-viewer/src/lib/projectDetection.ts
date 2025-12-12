@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core'
 import { readConfig, listProjects, scanProjects, type DiscoveredProject as RustDiscoveredProject } from './tauriApi'
 import type { Project, DiscoveredProject } from '../types/project'
 
@@ -171,12 +172,26 @@ export async function getDiscoveredProjects(): Promise<DiscoveredProject[]> {
 }
 
 /**
+ * Get current working directory using Tauri API
+ * Falls back to '.' if the API is not available
+ */
+async function getCurrentDirectory(): Promise<string> {
+  try {
+    // Use Tauri command to get current directory from Rust backend
+    return await invoke<string>('get_current_dir')
+  } catch {
+    // Fallback to relative path if Tauri command not available
+    return '.'
+  }
+}
+
+/**
  * Detect project from current working directory
  * Checks for .mcp.json or .claude/agents/ directory
  */
 export async function detectCurrentProject(): Promise<Project | null> {
   try {
-    const projectPath = process.cwd?.() || '.'
+    const projectPath = await getCurrentDirectory()
     const projectName = getProjectNameFromPath(projectPath)
 
     // Try to read .mcp.json from current directory

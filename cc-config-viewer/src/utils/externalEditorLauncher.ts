@@ -6,6 +6,21 @@
  */
 
 import type { ExternalEditor, EditorOpenOptions } from '../types/trace'
+import { getHomeDir } from '../lib/tauriApi'
+
+// Cached home directory (lazily initialized)
+let cachedHomeDir: string | null = null
+
+async function getHomeDirCached(): Promise<string> {
+  if (cachedHomeDir === null) {
+    try {
+      cachedHomeDir = await getHomeDir()
+    } catch {
+      cachedHomeDir = ''
+    }
+  }
+  return cachedHomeDir
+}
 
 /// Detects the system's default editor
 /// Note: In Tauri, the platform detection is handled in the Rust backend
@@ -66,15 +81,14 @@ export function isValidFilePath(filePath: string): boolean {
 }
 
 /// Normalizes a file path for display
-export function normalizeFilePath(filePath: string): string {
+export async function normalizeFilePath(filePath: string): Promise<string> {
   // Expand home directory if present
   if (filePath.startsWith('~')) {
-    const homeDir = process.env.HOME || process.env.USERPROFILE || ''
+    const homeDir = await getHomeDirCached()
     return filePath.replace('~', homeDir)
   }
 
   // Convert Windows backslashes to forward slashes for consistency
-  // In Tauri, we can't rely on process.platform, so we'll detect by checking the path
   if (filePath.includes('\\')) {
     return filePath.replace(/\\/g, '/')
   }
@@ -83,15 +97,15 @@ export function normalizeFilePath(filePath: string): string {
 }
 
 /// Gets the file name from a path
-export function getFileName(filePath: string): string {
-  const normalized = normalizeFilePath(filePath)
+export async function getFileName(filePath: string): Promise<string> {
+  const normalized = await normalizeFilePath(filePath)
   const parts = normalized.split('/')
   return parts[parts.length - 1] || normalized
 }
 
 /// Gets the directory from a file path
-export function getDirectory(filePath: string): string {
-  const normalized = normalizeFilePath(filePath)
+export async function getDirectory(filePath: string): Promise<string> {
+  const normalized = await normalizeFilePath(filePath)
   const parts = normalized.split('/')
   return parts.slice(0, -1).join('/') || '/'
 }

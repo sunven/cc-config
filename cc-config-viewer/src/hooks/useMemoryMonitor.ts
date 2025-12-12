@@ -21,7 +21,7 @@ const MEMORY_THRESHOLDS = {
  */
 export function useMemoryMonitor(
   intervalMs: number = 30000,
-  enableLogging: boolean = process.env.NODE_ENV === 'development'
+  enableLogging: boolean = import.meta.env.DEV
 ) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const warningShownRef = useRef(false)
